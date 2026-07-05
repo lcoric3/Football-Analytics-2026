@@ -49,11 +49,37 @@ STAT_TYPE_MAP = {
     84: "yellow_cards",       # Yellowcards
     83: "red_cards",          # Redcards
     118: "rating",            # Rating
+    # Added for dribbling/passing/duel-defending scouting scores - these were
+    # present in the raw SportMonks response all along but previously fell
+    # into the "unmapped statistic type ids" bucket and got discarded.
+    108: "dribble_attempts",       # Dribble Attempts
+    109: "successful_dribbles",   # Successful Dribbles
+    110: "dribbled_past",         # Dribbled Past (times beaten by an opponent's dribble)
+    96: "fouls_drawn",            # Fouls Drawn
+    98: "crosses",                # Total Crosses
+    99: "accurate_crosses",       # Accurate Crosses
+    122: "long_balls",            # Long Balls
+    123: "accurate_long_balls",   # Long Balls Won (accurate long balls)
+    117: "key_passes",            # Key Passes
+    107: "aerials_won",           # Aerials Won
+    101: "clearances",            # Clearances
+    # Goalkeeper-specific stats (for goalkeeper_score in scouting_scores.py).
+    # 57 and 104 only ever appear on goalkeeper rows in this data - verified
+    # by checking a sample outfield player's raw stats had neither. 88 and
+    # 194 are emitted for *every* player (SportMonks attaches "team result
+    # while this player was on the pitch" to everyone), so they're only
+    # meaningful here when read on a Goalkeeper row - unused for outfielders.
+    57: "saves",                  # Saves
+    104: "saves_inside_box",      # Saves Inside Box
+    88: "goals_conceded",         # Goals Conceded (while on the pitch)
+    194: "clean_sheets",          # Clean Sheets (while on the pitch)
+    47: "penalties_saved",        # Penalties - see VALUE_KEY_OVERRIDES below
 }
 
 # Some stat values carry the number we want under a key other than "total".
 VALUE_KEY_OVERRIDES = {
     118: "average",  # Rating
+    47: "saved",     # Penalties: {"saved": N, "scored": N, "missed": N, ...} - we want N saved
 }
 
 CLEAN_COLUMNS = [
@@ -61,6 +87,10 @@ CLEAN_COLUMNS = [
     "appearances", "minutes", "goals", "assists", "shots", "shots_on_target",
     "passes", "pass_accuracy", "tackles", "interceptions", "duels", "duels_won",
     "yellow_cards", "red_cards", "rating",
+    "dribble_attempts", "successful_dribbles", "dribbled_past", "fouls_drawn",
+    "crosses", "accurate_crosses", "long_balls", "accurate_long_balls",
+    "key_passes", "aerials_won", "clearances",
+    "saves", "saves_inside_box", "goals_conceded", "clean_sheets", "penalties_saved",
 ]
 
 
@@ -99,8 +129,9 @@ def _extract_player_stats(player, season_id=None):
     return stats, unmapped
 
 
-def clean(entries, season_id=None):
-    """Turn the list of raw squad entries into one clean DataFrame."""
+def _build_rows(entries, season_id=None):
+    """Flatten every raw squad entry into a row dict. Shared by clean()
+    and get_raw_row_count() so both work from the exact same logic."""
     rows = []
     all_unmapped = set()
 
@@ -144,8 +175,31 @@ def clean(entries, season_id=None):
             "yellow_cards": stats.get("yellow_cards"),
             "red_cards": stats.get("red_cards"),
             "rating": stats.get("rating"),
+            "dribble_attempts": stats.get("dribble_attempts"),
+            "successful_dribbles": stats.get("successful_dribbles"),
+            "dribbled_past": stats.get("dribbled_past"),
+            "fouls_drawn": stats.get("fouls_drawn"),
+            "crosses": stats.get("crosses"),
+            "accurate_crosses": stats.get("accurate_crosses"),
+            "long_balls": stats.get("long_balls"),
+            "accurate_long_balls": stats.get("accurate_long_balls"),
+            "key_passes": stats.get("key_passes"),
+            "aerials_won": stats.get("aerials_won"),
+            "clearances": stats.get("clearances"),
+            "saves": stats.get("saves"),
+            "saves_inside_box": stats.get("saves_inside_box"),
+            "goals_conceded": stats.get("goals_conceded"),
+            "clean_sheets": stats.get("clean_sheets"),
+            "penalties_saved": stats.get("penalties_saved"),
         })
 
+    return rows, all_unmapped
+
+
+def _filtered_raw_frame(entries, season_id=None):
+    """Rows with a player_id and minutes > 0, *before* de-duplication -
+    the shared starting point for clean() and get_raw_row_count()."""
+    rows, all_unmapped = _build_rows(entries, season_id)
     if all_unmapped:
         logger.warning(
             "Unmapped statistic type ids seen (look these up in "
@@ -154,11 +208,23 @@ def clean(entries, season_id=None):
         )
 
     df = pd.DataFrame(rows, columns=CLEAN_COLUMNS)
-
-    # A player needs at least some minutes to be useful for per-90 analysis
-    # later - drop rows with no player_id or zero/missing minutes.
     df = df.dropna(subset=["player_id"])
     df = df[df["minutes"].fillna(0) > 0].reset_index(drop=True)
+    return df
+
+
+def get_raw_row_count(raw_json_path=RAW_JSON_PATH):
+    """Row count after the minutes>0 filter but *before* de-duplication -
+    used by report.py to show how much de-duplication changed the dataset,
+    without duplicating clean()'s parsing logic."""
+    with open(raw_json_path, "r", encoding="utf-8") as f:
+        entries = json.load(f)
+    return len(_filtered_raw_frame(entries))
+
+
+def clean(entries, season_id=None):
+    """Turn the list of raw squad entries into one clean DataFrame."""
+    df = _filtered_raw_frame(entries, season_id)
 
     # Zero-fill count-style stats (a missing "assists" means 0 assists), but
     # leave age/rating as NaN when unknown - 0 would look like a real value
@@ -170,6 +236,25 @@ def clean(entries, season_id=None):
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
     for col in ("age", "rating"):
         df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Some players' SportMonks records list squad membership at two clubs for
+    # this season (typically a mid-season transfer/loan), which duplicates
+    # their row here - but statistics.details isn't split per spell, so both
+    # rows carry the *same* full-season totals. Counting that season twice
+    # would double-count them in every per-90 rate and ranking, so keep only
+    # one row per player_id: the one with the most minutes.
+    dup_mask = df.duplicated(subset=["player_id"], keep=False)
+    for player_id, group in df[dup_mask].groupby("player_id"):
+        teams = group["team_name"].dropna().unique()
+        if len(teams) > 1:
+            logger.warning(
+                "Player %s (id=%s) has duplicate rows across teams %s - "
+                "keeping the row with the most minutes.",
+                group["player_name"].iloc[0], player_id, list(teams),
+            )
+    df = df.sort_values("minutes", ascending=False).drop_duplicates(
+        subset=["player_id"], keep="first"
+    ).reset_index(drop=True)
 
     return df
 

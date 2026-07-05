@@ -49,6 +49,29 @@ def add_features(df):
     df["interceptions_per90"] = _safe_div(df["interceptions"] * 90, minutes)
     df["cards_per90"] = _safe_div((df["yellow_cards"] + df["red_cards"]) * 90, minutes)
 
+    # --- New per-90 metrics: dribbling, crossing, long passing ----------
+    # These feed the new dribbling/passing/duel-defending scouting scores.
+    df["dribble_attempts_per90"] = _safe_div(df["dribble_attempts"] * 90, minutes)
+    df["successful_dribbles_per90"] = _safe_div(df["successful_dribbles"] * 90, minutes)
+    df["dribbled_past_per90"] = _safe_div(df["dribbled_past"] * 90, minutes)
+    df["fouls_drawn_per90"] = _safe_div(df["fouls_drawn"] * 90, minutes)
+    df["crosses_per90"] = _safe_div(df["crosses"] * 90, minutes)
+    df["accurate_crosses_per90"] = _safe_div(df["accurate_crosses"] * 90, minutes)
+    df["long_balls_per90"] = _safe_div(df["long_balls"] * 90, minutes)
+    df["accurate_long_balls_per90"] = _safe_div(df["accurate_long_balls"] * 90, minutes)
+    df["key_passes_per90"] = _safe_div(df["key_passes"] * 90, minutes)
+    df["aerials_won_per90"] = _safe_div(df["aerials_won"] * 90, minutes)
+    df["clearances_per90"] = _safe_div(df["clearances"] * 90, minutes)
+
+    # --- Goalkeeper per-90 metrics (only meaningful for Goalkeeper rows) --
+    # Feed goalkeeper_score in scouting_scores.py, kept separate from the
+    # outfield scores since goalkeeping is a fundamentally different job.
+    df["saves_per90"] = _safe_div(df["saves"] * 90, minutes)
+    df["goals_conceded_per90"] = _safe_div(df["goals_conceded"] * 90, minutes)
+    # clean sheets as a rate of appearances, not a per-90 count (a clean
+    # sheet is a per-match outcome, not something that scales within a match)
+    df["clean_sheet_rate"] = _safe_div(df["clean_sheets"] * 100, df["appearances"])
+
     # --- Ratios: quality, not volume -------------------------------------
     # % of shots that are on target
     df["shot_accuracy"] = _safe_div(df["shots_on_target"] * 100, df["shots"])
@@ -62,6 +85,12 @@ def add_features(df):
     df["minutes_per_appearance"] = _safe_div(minutes, df["appearances"])
     # goals + assists per 90 - overall attacking output regardless of role
     df["goal_contribution_per90"] = df["goals_per90"] + df["assists_per90"]
+    # % of dribble attempts that succeed - beating a man cleanly, not just trying one
+    df["dribble_success_rate"] = _safe_div(df["successful_dribbles"] * 100, df["dribble_attempts"])
+    # % of crosses that find a teammate
+    df["cross_accuracy"] = _safe_div(df["accurate_crosses"] * 100, df["crosses"])
+    # % of long balls that find a teammate
+    df["long_ball_accuracy"] = _safe_div(df["accurate_long_balls"] * 100, df["long_balls"])
 
     return df
 

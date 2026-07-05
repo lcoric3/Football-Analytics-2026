@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
 ML_FEATURES_CSV_PATH = "data/processed/hnl_ml_features_2025_2026.csv"
+SIMILARITY_OUTPUT_CSV_PATH = "data/output/player_similarity_results.csv"
 
 # Per-90 rates and ratios (not raw totals) - these are what make players
 # comparable to each other regardless of how many minutes they played.
@@ -47,7 +48,62 @@ ML_FEATURE_COLS = [
     "passes_per90", "tackles_per90", "interceptions_per90", "cards_per90",
     "shot_accuracy", "goal_conversion", "pass_accuracy_ratio",
     "duel_success_rate", "minutes_per_appearance", "goal_contribution_per90",
+    # Added alongside Stage 1's dribbling/passing/duel-defending scores.
+    "successful_dribbles_per90", "dribble_success_rate", "fouls_drawn_per90",
+    "crosses_per90", "accurate_crosses_per90", "cross_accuracy",
+    "long_balls_per90", "accurate_long_balls_per90", "long_ball_accuracy",
+    "key_passes_per90", "aerials_won_per90", "clearances_per90",
 ]
+
+# Role-based similarity search: comparing a striker to a centre-back on
+# "shots_per90" is meaningless (the CB will always look like an outlier),
+# so each role compares players on only the stats relevant to that role,
+# not the full statistical profile. "overall" is the exception - it
+# deliberately uses every feature, for a general "who plays like this
+# player, period" comparison.
+ROLE_FEATURE_SETS = {
+    "overall": ML_FEATURE_COLS,
+    "attacker": [
+        "goals_per90", "shots_per90", "shots_on_target_per90",
+        "shot_accuracy", "goal_conversion", "goal_contribution_per90",
+    ],
+    "midfielder": [
+        "passes_per90", "key_passes_per90", "assists_per90",
+        "tackles_per90", "interceptions_per90",
+        "successful_dribbles_per90", "pass_accuracy_ratio",
+    ],
+    "defender": [
+        "tackles_per90", "interceptions_per90", "duel_success_rate",
+        "aerials_won_per90", "clearances_per90", "cards_per90",
+    ],
+    "dribbler": [
+        "successful_dribbles_per90", "dribble_success_rate", "fouls_drawn_per90",
+    ],
+    "passer": [
+        "passes_per90", "key_passes_per90", "pass_accuracy_ratio",
+        "accurate_long_balls_per90", "accurate_crosses_per90",
+    ],
+    "progressive_midfielder": [
+        "key_passes_per90", "long_balls_per90",
+        "successful_dribbles_per90", "assists_per90",
+    ],
+    "duel_defender": [
+        "tackles_per90", "interceptions_per90", "duel_success_rate",
+        "aerials_won_per90", "clearances_per90",
+    ],
+    # passer_defender and ball_playing_defender intentionally share the same
+    # feature set - scouting_scores.py backs both rankings with one shared
+    # passer_defender_score (Stage 1/2 decision), so a role-consistent
+    # similarity search should compare players the same way too.
+    "passer_defender": [
+        "passes_per90", "pass_accuracy_ratio", "accurate_long_balls_per90",
+        "key_passes_per90", "tackles_per90", "interceptions_per90", "duel_success_rate",
+    ],
+    "ball_playing_defender": [
+        "passes_per90", "pass_accuracy_ratio", "accurate_long_balls_per90",
+        "key_passes_per90", "tackles_per90", "interceptions_per90", "duel_success_rate",
+    ],
+}
 
 # Raw counting stats that don't already encode "goals" - safe to use as
 # predictors when the target is goals, without leaking the answer.
@@ -68,23 +124,45 @@ def build_ml_dataset(df):
     keep_cols = (
         ["player_id", "player_name", "team_name", "position", "age", "minutes", "rating"]
         + ML_FEATURE_COLS
-        + ["attacking_score", "creative_score", "defensive_score", "discipline_score", "overall_score"]
+        + [
+            "attacking_score", "creative_score", "defensive_score",
+            "discipline_score", "overall_score",
+            "dribbling_score", "passing_score", "duel_defending_score",
+            "progressive_midfielder_score", "passer_defender_score",
+            "goalkeeper_score",
+        ]
     )
     return eligible[keep_cols].reset_index(drop=True)
 
 
-def find_similar_players(ml_df, player_name, top_n=5):
+def find_similar_players(ml_df, player_name, role="overall", top_n=10):
     """
-    Cosine similarity: standardize each feature (so no single metric like
-    passes_per90 dominates just because it has bigger numbers), then treat
-    each player as a vector and measure the angle between vectors. Players
-    with a similar statistical *profile* (not just similar totals) end up
-    with a similarity close to 1.0.
+    Find the top_n players most similar to `player_name`, using only the
+    stats relevant to `role` (see ROLE_FEATURE_SETS above).
+
+    Cosine similarity, in scouting terms: think of each player as a list of
+    numbers (their per-90 rates and ratios for the chosen role - e.g. for
+    "attacker" that's [goals_per90, shots_per90, shot_accuracy, ...]). That
+    list is a *vector* - a point in space, one axis per stat. Cosine
+    similarity measures the *angle* between two players' vectors, not the
+    distance between them. That matters because it compares *shape* rather
+    than *size*: a squad player with 300 minutes and a nailed-on starter
+    with 2500 minutes can have nearly identical *rates* (goals per90, pass
+    accuracy, etc.) even though their raw totals are worlds apart - cosine
+    similarity says "these two play the same way", where a raw-number
+    comparison would wrongly say "these two are nothing alike" just because
+    one has played far more. A score of 1.0 means identical shape/style;
+    0 means no relationship; scores are standardized first (each stat
+    rescaled to the same spread) so a big-number stat like passes_per90
+    doesn't automatically outweigh a small-number stat like goals_per90.
     """
+    if role not in ROLE_FEATURE_SETS:
+        raise ValueError(f"Unknown role '{role}'. Choose from: {sorted(ROLE_FEATURE_SETS)}")
     if player_name not in ml_df["player_name"].values:
         raise ValueError(f"'{player_name}' not found in the ML dataset.")
 
-    X = StandardScaler().fit_transform(ml_df[ML_FEATURE_COLS])
+    feature_cols = ROLE_FEATURE_SETS[role]
+    X = StandardScaler().fit_transform(ml_df[feature_cols])
     similarity_matrix = cosine_similarity(X)
 
     idx = ml_df.index[ml_df["player_name"] == player_name][0]
@@ -92,8 +170,33 @@ def find_similar_players(ml_df, player_name, top_n=5):
     scores = scores.drop(index=idx).sort_values(ascending=False)
 
     top_matches = ml_df.loc[scores.index[:top_n], ["player_name", "team_name", "position"]].copy()
+    top_matches.insert(0, "rank", range(1, len(top_matches) + 1))
     top_matches["similarity"] = scores.values[:top_n]
+    top_matches.insert(0, "role", role)
+    top_matches.insert(0, "query_player", player_name)
     return top_matches
+
+
+# A handful of representative searches, saved to
+# data/output/player_similarity_results.csv on every pipeline run so the
+# feature is demonstrated without requiring an interactive session.
+EXAMPLE_SIMILARITY_QUERIES = [
+    ("Ismaël Bennacer", "overall"),
+    ("Sergi Domínguez", "passer_defender"),
+    ("Dion Beljo", "attacker"),
+]
+
+
+def build_similarity_examples(ml_df, queries=EXAMPLE_SIMILARITY_QUERIES, top_n=10):
+    tables = []
+    for player_name, role in queries:
+        try:
+            tables.append(find_similar_players(ml_df, player_name, role=role, top_n=top_n))
+        except ValueError as exc:
+            logger.warning("Similarity example skipped: %s", exc)
+    if not tables:
+        return pd.DataFrame(columns=["query_player", "role", "rank", "player_name", "team_name", "position", "similarity"])
+    return pd.concat(tables, ignore_index=True)
 
 
 def cluster_players(ml_df, n_clusters=N_CLUSTERS):
@@ -173,12 +276,14 @@ def run():
     ml_df = build_ml_dataset(scored_df)
 
     if len(ml_df) >= 2:
-        top_player = ml_df.sort_values("overall_score", ascending=False)["player_name"].iloc[0]
-        try:
-            similar = find_similar_players(ml_df, top_player, top_n=5)
-            logger.info("Players most similar to %s:\n%s", top_player, similar.to_string(index=False))
-        except ValueError as exc:
-            logger.warning("Similarity demo skipped: %s", exc)
+        similarity_examples = build_similarity_examples(ml_df)
+        if not similarity_examples.empty:
+            os.makedirs(os.path.dirname(SIMILARITY_OUTPUT_CSV_PATH), exist_ok=True)
+            similarity_examples.to_csv(SIMILARITY_OUTPUT_CSV_PATH, index=False)
+            logger.info(
+                "Saved %d similarity example rows to %s",
+                len(similarity_examples), SIMILARITY_OUTPUT_CSV_PATH,
+            )
 
     if len(ml_df) >= N_CLUSTERS:
         ml_df = cluster_players(ml_df, n_clusters=N_CLUSTERS)
