@@ -18,19 +18,22 @@ from datetime import date
 import pandas as pd
 
 from src import clean_data
+from src import season_config
 from src.scouting_scores import MIN_MINUTES_FOR_SCORES
 
 logger = logging.getLogger(__name__)
 
 CLEAN_CSV_PATH = clean_data.CLEAN_CSV_PATH
-SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
-TOP_PLAYERS_CSV_PATH = "data/output/top_players_hnl_2025_2026.csv"
-SPECIALIST_CSV_PATH = "data/output/specialist_rankings_hnl_2025_2026.csv"
-SIMILARITY_CSV_PATH = "data/output/player_similarity_results.csv"
-REPLACEMENT_CSV_PATH = "data/output/replacement_targets.csv"
-CLUSTERS_CSV_PATH = "data/output/player_clusters.csv"
-CLUSTER_PROFILES_REPORT_FILE = "player_cluster_profiles.md"
-REPORT_PATH = "reports/hnl_2025_2026_scouting_report.md"
+SCORED_CSV_PATH = season_config.processed_path("hnl_player_scored")
+TOP_PLAYERS_CSV_PATH = season_config.output_path("top_players_hnl")
+SPECIALIST_CSV_PATH = season_config.output_path("specialist_rankings_hnl")
+SIMILARITY_CSV_PATH = season_config.output_path("player_similarity_results")
+REPLACEMENT_CSV_PATH = season_config.output_path("replacement_targets")
+CLUSTERS_CSV_PATH = season_config.output_path("player_clusters")
+# Relative filename only - both reports live in the same reports/ folder,
+# so the Markdown report links to this one by name, not full path.
+CLUSTER_PROFILES_REPORT_FILE = os.path.basename(season_config.cluster_profiles_report_path())
+REPORT_PATH = season_config.scouting_report_path()
 
 TOP_N = 10
 
@@ -147,14 +150,14 @@ def build_report(
     today = date.today().isoformat()
 
     L = []
-    L.append("# HNL 2025/2026 Scouting Report")
+    L.append(f"# HNL {season_config.SEASON_NAME} Scouting Report")
     L.append(f"\n*Generated {today} by `src/report.py`, from the current contents of `data/` and `reports/figures/`.*\n")
 
     # 1. Project summary --------------------------------------------------
     L.append("## 1. Project Summary\n")
     L.append(
         "This project turns raw SportMonks player statistics for the Croatian "
-        "1. HNL 2025/2026 season into a full scouting data pipeline: cleaned "
+        f"1. HNL {season_config.SEASON_NAME} season into a full scouting data pipeline: cleaned "
         "data, per-90 features, explainable scouting scores, age-aware "
         "potential scoring, team-context/underrated scoring, position- and "
         "role-specific rankings, a filterable player-similarity search, "
@@ -169,7 +172,7 @@ def build_report(
     L.append(
         "All player statistics come from the "
         "[SportMonks](https://www.sportmonks.com/) Football API, scoped to "
-        "the Croatian HNL / 1. HNL, 2025/2026 season. `fetch_data.py` finds "
+        f"the Croatian HNL / 1. HNL, {season_config.SEASON_NAME} season. `fetch_data.py` finds "
         "the league/season IDs, paginates through every team's squad "
         "statistics, and saves the raw JSON response before anything is "
         "cleaned or transformed - so the raw response is always available "
@@ -334,7 +337,7 @@ def build_report(
     ))
     L.append(
         "\n**`best_u23_players_by_potential`** (saved alongside "
-        "`best_young_talents` in `data/output/top_players_hnl_2025_2026.csv`) "
+        f"`best_young_talents` in `{TOP_PLAYERS_CSV_PATH}`) "
         "is the exact same U23 pool and sort order as the table above - it's "
         "kept as a second category label specifically so it sits next to "
         "`best_u23` (Section 7) in the output, making the \"current output\" "

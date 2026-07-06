@@ -33,15 +33,16 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
+from src import season_config
 from src.scouting_scores import MIN_MINUTES_FOR_SCORES
 
 logger = logging.getLogger(__name__)
 
-SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
-ML_FEATURES_CSV_PATH = "data/processed/hnl_ml_features_2025_2026.csv"
-SIMILARITY_OUTPUT_CSV_PATH = "data/output/player_similarity_results.csv"
-CLUSTERS_OUTPUT_CSV_PATH = "data/output/player_clusters.csv"
-CLUSTER_PROFILES_REPORT_PATH = "reports/player_cluster_profiles.md"
+SCORED_CSV_PATH = season_config.processed_path("hnl_player_scored")
+ML_FEATURES_CSV_PATH = season_config.processed_path("hnl_ml_features")
+SIMILARITY_OUTPUT_CSV_PATH = season_config.output_path("player_similarity_results")
+CLUSTERS_OUTPUT_CSV_PATH = season_config.output_path("player_clusters")
+CLUSTER_PROFILES_REPORT_PATH = season_config.cluster_profiles_report_path()
 
 # Per-90 rates and ratios (not raw totals) - these are what make players
 # comparable to each other regardless of how many minutes they played.
@@ -318,9 +319,9 @@ def find_similar_players(
 
 
 # A handful of representative searches, saved to
-# data/output/player_similarity_results.csv on every pipeline run so the
-# feature - including the Stage B3 filters - is demonstrated without
-# requiring an interactive session.
+# SIMILARITY_OUTPUT_CSV_PATH on every pipeline run so the feature -
+# including the Stage B3 filters - is demonstrated without requiring an
+# interactive session.
 EXAMPLE_SIMILARITY_QUERIES = [
     # same_position_only=True: a stricter, like-for-like comparison - only
     # other midfielders are considered, not just "similar per-90 shape"
@@ -626,8 +627,8 @@ CLUSTER_CSV_COLUMNS = [
 
 
 def save_cluster_outputs(clustered_df):
-    """Saves data/output/player_clusters.csv (one row per player, sorted by
-    cluster then quality_score) and reports/player_cluster_profiles.md."""
+    """Saves CLUSTERS_OUTPUT_CSV_PATH (one row per player, sorted by
+    cluster then quality_score) and CLUSTER_PROFILES_REPORT_PATH."""
     output_df = clustered_df.copy()
     output_df["quality_score"] = np.where(
         output_df["position"] == "Goalkeeper",

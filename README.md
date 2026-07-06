@@ -147,10 +147,10 @@ Football-Analytics-2026/
 | `data/output/specialist_rankings_hnl_2025_2026.csv` | `analysis.py` | Dribblers, passers, duel defenders, progressive midfielders, passer/ball-playing defenders, creators, ball winners, and U23 versions of those |
 | `reports/figures/*.png` | `visualization.py` | Charts (19 total - leaderboards, scatter plots, a radar chart) |
 | `data/processed/hnl_ml_features_2025_2026.csv` | `ml_models.py` | ML-ready dataset |
-| `data/output/player_similarity_results.csv` | `ml_models.py` | Example player-similarity searches |
-| `data/output/player_clusters.csv` | `ml_models.py` | Every eligible player's cluster assignment and name |
-| `reports/player_cluster_profiles.md` | `ml_models.py` | Per-cluster profile: top players, average age/minutes, playing-style description |
-| `data/output/replacement_targets.csv` | `replacement_scouting.py` | Example replacement-target shortlists |
+| `data/output/player_similarity_results_2025_2026.csv` | `ml_models.py` | Example player-similarity searches |
+| `data/output/player_clusters_2025_2026.csv` | `ml_models.py` | Every eligible player's cluster assignment and name |
+| `reports/player_cluster_profiles_2025_2026.md` | `ml_models.py` | Per-cluster profile: top players, average age/minutes, playing-style description |
+| `data/output/replacement_targets_2025_2026.csv` | `replacement_scouting.py` | Example replacement-target shortlists |
 | `reports/hnl_2025_2026_scouting_report.md` | `report.py` | Markdown scouting report - embeds every chart with an explanation |
 
 ## Scouting scores
@@ -337,7 +337,7 @@ the comparison). Three things are done with it:
   ```
 
   A handful of example searches (including all four above) are saved to
-  `data/output/player_similarity_results.csv` on every pipeline run.
+  `data/output/player_similarity_results_2025_2026.csv` on every pipeline run.
 - **KMeans clustering:** groups players into named playing-style
   archetypes purely by statistical shape - see the dedicated "Player
   clustering" section below.
@@ -393,11 +393,11 @@ midfielder whose tackle/pass profile matches that style.
 
 Outputs, saved on every pipeline run:
 
-- `data/output/player_clusters.csv` - every eligible player with their
+- `data/output/player_clusters_2025_2026.csv` - every eligible player with their
   `cluster_id`, `cluster_name`, and a `quality_score` (`overall_score` for
   outfield players, `goalkeeper_score` for goalkeepers - used only to
   pick example players to display, never as a clustering input).
-- `reports/player_cluster_profiles.md` - one section per cluster: player
+- `reports/player_cluster_profiles_2025_2026.md` - one section per cluster: player
   count, average age/minutes, a plain-English "playing style" description,
   and a table of top players by `quality_score`.
 
@@ -440,7 +440,7 @@ replacement_scouting.find_replacement_targets(ml_df, "Sergi Domínguez")
 replacement_scouting.find_replacement_targets(ml_df, "Gabriel Vidovic", max_age=23)
 ```
 
-Examples for all four are saved to `data/output/replacement_targets.csv`
+Examples for all four are saved to `data/output/replacement_targets_2025_2026.csv`
 on every pipeline run. **It says nothing about video-scouted technique,
 tactical fit, injury history, character, or transfer feasibility (fee,
 release clause, wages, contract length)** - treat it as a reproducible

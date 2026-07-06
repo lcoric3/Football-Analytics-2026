@@ -19,11 +19,13 @@ import os
 
 import pandas as pd
 
+from src import season_config
+
 logger = logging.getLogger(__name__)
 
-SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
-OUTPUT_CSV_PATH = "data/output/top_players_hnl_2025_2026.csv"
-SPECIALIST_OUTPUT_CSV_PATH = "data/output/specialist_rankings_hnl_2025_2026.csv"
+SCORED_CSV_PATH = season_config.processed_path("hnl_player_scored")
+OUTPUT_CSV_PATH = season_config.output_path("top_players_hnl")
+SPECIALIST_OUTPUT_CSV_PATH = season_config.output_path("specialist_rankings_hnl")
 
 TOP_N = 15
 U23_AGE_LIMIT = 23

@@ -535,7 +535,7 @@ By default, `same_position_only=True` and `same_team_exclude=True` (a replacemen
 
 Goalkeepers are clustered separately from outfield players (their near-zero outfield stats would otherwise just form one arbitrary 'goalkeeper' cluster): 8 clusters for outfield players, 2 for goalkeepers. Each cluster is named by comparing its own average stats against the population average (a z-score per feature), then matching that profile against a set of predefined archetype signatures - if no archetype clears a confidence bar, the cluster keeps a neutral `balanced profile` label instead of a forced one. **Cluster names describe playing style, not literal position** - clustering never looks at the `position` column, so an archetype like 'ball-playing defenders' only keeps that name if the cluster is actually made up mostly of defenders; otherwise it falls back to a neutral statistical name (e.g. 'defensive distributors') instead of a forced position claim.
 
-**Full per-cluster profiles** (player count, average age/minutes, a plain-English playing-style description, and top players) are in [`player_cluster_profiles.md`](player_cluster_profiles.md) - summary below:
+**Full per-cluster profiles** (player count, average age/minutes, a plain-English playing-style description, and top players) are in [`player_cluster_profiles_2025_2026.md`](player_cluster_profiles_2025_2026.md) - summary below:
 
 | Cluster | Name | Players | Avg Age | Top Player (by quality_score) |
 |:---|:---|:---|:---|:---|

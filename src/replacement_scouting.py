@@ -17,10 +17,11 @@ import os
 import pandas as pd
 
 from src import ml_models
+from src import season_config
 
 logger = logging.getLogger(__name__)
 
-REPLACEMENT_OUTPUT_CSV_PATH = "data/output/replacement_targets.csv"
+REPLACEMENT_OUTPUT_CSV_PATH = season_config.output_path("replacement_targets")
 
 # "Same or similar role": when the caller doesn't pick an ml_models role
 # explicitly, default to the role that matches the departing player's own
@@ -159,8 +160,8 @@ def find_replacement_targets(
 
 
 # A handful of representative searches, saved to
-# data/output/replacement_targets.csv on every pipeline run so the feature
-# is demonstrated without requiring an interactive session.
+# REPLACEMENT_OUTPUT_CSV_PATH on every pipeline run so the feature is
+# demonstrated without requiring an interactive session.
 EXAMPLE_REPLACEMENT_QUERIES = [
     {"player_name": "Dion Beljo"},
     {"player_name": "Ismaël Bennacer"},

@@ -26,10 +26,12 @@ from datetime import date
 
 import pandas as pd
 
+from src import season_config
+
 logger = logging.getLogger(__name__)
 
-RAW_JSON_PATH = "data/raw/hnl_player_stats_raw_2025_2026.json"
-CLEAN_CSV_PATH = "data/processed/hnl_player_stats_clean_2025_2026.csv"
+RAW_JSON_PATH = season_config.raw_json_path()
+CLEAN_CSV_PATH = season_config.processed_path("hnl_player_stats_clean")
 
 # Maps a SportMonks statistic type_id (from /core/types) -> our column name.
 # Add entries here if the log reports unmapped type ids for your data.

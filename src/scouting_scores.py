@@ -84,10 +84,12 @@ import os
 import numpy as np
 import pandas as pd
 
+from src import season_config
+
 logger = logging.getLogger(__name__)
 
-FEATURES_CSV_PATH = "data/processed/hnl_player_features_2025_2026.csv"
-SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
+FEATURES_CSV_PATH = season_config.processed_path("hnl_player_features")
+SCORED_CSV_PATH = season_config.processed_path("hnl_player_scored")
 
 # ~5 full matches - below this, per-90 rates are considered too noisy to score.
 MIN_MINUTES_FOR_SCORES = 450

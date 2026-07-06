@@ -1,5 +1,6 @@
 """
-Streamlit dashboard for the HNL 2025/2026 scouting project.
+Streamlit dashboard for the HNL scouting project (season set by
+src/season_config.py, defaults to 2025/2026).
 
 Read-only view over files the pipeline (`python main.py`) already produced -
 this file never calls the SportMonks API and never writes or recomputes any
@@ -16,18 +17,20 @@ import streamlit as st
 
 from src import ml_models
 from src import replacement_scouting
+from src import season_config
 from src.scouting_scores import MIN_MINUTES_FOR_SCORES
 
-st.set_page_config(page_title="HNL 2025/2026 Scouting Dashboard", layout="wide")
+st.set_page_config(page_title=f"HNL {season_config.SEASON_NAME} Scouting Dashboard", layout="wide")
 
-SCORED_CSV = "data/processed/hnl_player_scored_2025_2026.csv"
-ML_FEATURES_CSV = "data/processed/hnl_ml_features_2025_2026.csv"
-TOP_PLAYERS_CSV = "data/output/top_players_hnl_2025_2026.csv"
-SPECIALIST_CSV = "data/output/specialist_rankings_hnl_2025_2026.csv"
-CLUSTERS_CSV = "data/output/player_clusters.csv"
+SCORED_CSV = season_config.processed_path("hnl_player_scored")
+ML_FEATURES_CSV = season_config.processed_path("hnl_ml_features")
+TOP_PLAYERS_CSV = season_config.output_path("top_players_hnl")
+SPECIALIST_CSV = season_config.output_path("specialist_rankings_hnl")
+CLUSTERS_CSV = season_config.output_path("player_clusters")
+# Not yet season-suffixed - see the matching note in src/visualization.py.
 FIGURES_DIR = "reports/figures"
-REPORT_MD = "reports/hnl_2025_2026_scouting_report.md"
-CLUSTER_PROFILES_MD = "reports/player_cluster_profiles.md"
+REPORT_MD = season_config.scouting_report_path()
+CLUSTER_PROFILES_MD = season_config.cluster_profiles_report_path()
 
 # Rankings page: dashboard label -> (source CSV, category value in that CSV).
 RANKING_CATEGORIES = {
@@ -71,7 +74,7 @@ def missing_file_error(path):
 
 
 def render_overview():
-    st.title("HNL 2025/2026 Scouting Dashboard")
+    st.title(f"HNL {season_config.SEASON_NAME} Scouting Dashboard")
     st.markdown(
         "A read-only view over the Football-Analytics-2026 scouting pipeline: "
         "`SportMonks API -> raw data -> cleaned data -> feature engineering -> "
@@ -374,7 +377,7 @@ PAGES = {
 
 
 def main():
-    st.sidebar.title("HNL 2025/2026 Scouting")
+    st.sidebar.title(f"HNL {season_config.SEASON_NAME} Scouting")
     page = st.sidebar.radio("Section", list(PAGES))
     PAGES[page]()
 

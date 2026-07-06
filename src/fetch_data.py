@@ -38,18 +38,19 @@ import os
 
 import pandas as pd
 
+from src import season_config
 from src.sportmonks_client import SportMonksClient
 
 logger = logging.getLogger(__name__)
 
-RAW_JSON_PATH = "data/raw/hnl_player_stats_raw_2025_2026.json"
-RAW_CSV_PATH = "data/raw/hnl_player_stats_raw_2025_2026.csv"
+RAW_JSON_PATH = season_config.raw_json_path()
+RAW_CSV_PATH = season_config.raw_csv_path()
 
 # Defaults target the Croatian top flight. If SportMonks' search doesn't
 # return an exact match (naming varies: "HNL", "1. HNL", "SuperSport HNL"),
 # set HNL_LEAGUE_ID / HNL_SEASON_ID directly to skip the lookup.
 DEFAULT_LEAGUE_SEARCH = "HNL"
-DEFAULT_SEASON_NAME = "2025/2026"
+DEFAULT_SEASON_NAME = season_config.SEASON_NAME
 
 # Statistics detail include, chained onto each squad player. Includes are
 # joined with `;` (SportMonks-specific separator - see module docstring).

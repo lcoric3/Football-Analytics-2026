@@ -20,10 +20,12 @@ import os
 import numpy as np
 import pandas as pd
 
+from src import season_config
+
 logger = logging.getLogger(__name__)
 
-CLEAN_CSV_PATH = "data/processed/hnl_player_stats_clean_2025_2026.csv"
-FEATURES_CSV_PATH = "data/processed/hnl_player_features_2025_2026.csv"
+CLEAN_CSV_PATH = season_config.processed_path("hnl_player_stats_clean")
+FEATURES_CSV_PATH = season_config.processed_path("hnl_player_features")
 
 
 def _safe_div(numerator, denominator):

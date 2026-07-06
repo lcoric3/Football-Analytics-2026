@@ -29,13 +29,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from src import season_config
 from src.scouting_scores import MIN_MINUTES_FOR_SCORES
 
 logger = logging.getLogger(__name__)
 
-SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
-SPECIALIST_CSV_PATH = "data/output/specialist_rankings_hnl_2025_2026.csv"
-SIMILARITY_CSV_PATH = "data/output/player_similarity_results.csv"
+SCORED_CSV_PATH = season_config.processed_path("hnl_player_scored")
+SPECIALIST_CSV_PATH = season_config.output_path("specialist_rankings_hnl")
+SIMILARITY_CSV_PATH = season_config.output_path("player_similarity_results")
+# Not yet season-suffixed - charts from different seasons currently share
+# this one folder. Deferred to the multi-season dashboard stage.
 FIGURES_DIR = "reports/figures"
 TOP_N = 10
 U23_AGE_LIMIT = 23
