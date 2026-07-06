@@ -22,6 +22,7 @@ Run with:
 import os
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from src import ml_models
@@ -58,6 +59,21 @@ def load_csv(path):
     if not os.path.exists(path):
         return None
     return pd.read_csv(path)
+
+
+def _ranked_bar_chart(df, value_col, title, label_col="player_name", color_col=None):
+    """Horizontal bar chart for an already-ranked (best/most-extreme-first)
+    dataframe. Plotly draws horizontal bars bottom-up, so the input needs
+    reversing first - otherwise rank #1 would render at the bottom."""
+    if df.empty:
+        return
+    chart_df = df.iloc[::-1]
+    fig = px.bar(
+        chart_df, x=value_col, y=label_col, orientation="h",
+        color=color_col, title=title,
+    )
+    fig.update_layout(yaxis_title="", xaxis_title=value_col)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def missing_file_error(path):
@@ -132,6 +148,15 @@ def render_overview(suffix):
     col1.metric("Players", len(scored_df))
     col2.metric("Teams", scored_df["team_name"].nunique())
     col3.metric(f"Eligible players (>={MIN_MINUTES_FOR_SCORES} min)", len(eligible))
+
+    st.subheader("Score distribution by position")
+    if not eligible.empty:
+        fig_box = px.box(
+            eligible, x="position", y="overall_score", points="outliers",
+            title=f"overall_score distribution by position ({MIN_MINUTES_FOR_SCORES}+ minutes)",
+        )
+        fig_box.update_layout(xaxis_title="", yaxis_title="overall_score")
+        st.plotly_chart(fig_box, use_container_width=True)
 
     st.subheader("Full scouting report")
     report_path = season_config.scouting_report_path(suffix=suffix)
@@ -456,22 +481,30 @@ def render_player_development():
     ])
 
     with tabs[0]:
-        st.dataframe(
-            player_development.rank_biggest_improvers(dev_df, top_n=20),
-            hide_index=True, use_container_width=True,
+        biggest_improvers = player_development.rank_biggest_improvers(dev_df, top_n=20)
+        _ranked_bar_chart(
+            biggest_improvers, "overall_score_change",
+            f"Biggest improvers: overall_score change ({base_label} -> {target_label})",
         )
+        st.dataframe(biggest_improvers, hide_index=True, use_container_width=True)
 
     with tabs[1]:
-        st.dataframe(
-            player_development.rank_biggest_decliners(dev_df, top_n=20),
-            hide_index=True, use_container_width=True,
+        biggest_decliners = player_development.rank_biggest_decliners(dev_df, top_n=20)
+        _ranked_bar_chart(
+            biggest_decliners, "overall_score_change",
+            f"Biggest decliners: overall_score change ({base_label} -> {target_label})",
         )
+        st.dataframe(biggest_decliners, hide_index=True, use_container_width=True)
 
     with tabs[2]:
         young_improvers = player_development.rank_young_improvers(dev_df, top_n=20)
         if young_improvers.empty:
             st.warning("No young improvers found.")
         else:
+            _ranked_bar_chart(
+                young_improvers, "overall_score_change",
+                f"Young improvers (age <= {player_development.U23_AGE_LIMIT}): overall_score change",
+            )
             st.dataframe(young_improvers, hide_index=True, use_container_width=True)
 
     with tabs[3]:
@@ -479,6 +512,10 @@ def render_player_development():
         if changed_team_improvers.empty:
             st.warning("No changed-team improvers found.")
         else:
+            _ranked_bar_chart(
+                changed_team_improvers, "overall_score_change",
+                "Improved after changing team: overall_score change",
+            )
             st.dataframe(changed_team_improvers, hide_index=True, use_container_width=True)
 
     with tabs[4]:
@@ -519,11 +556,41 @@ def render_player_development():
                     st.metric("Minutes", _development_metric(row, f"minutes_{target_suffix}", decimals=0))
                     st.metric("Overall score", _development_metric(row, f"overall_score_{target_suffix}", decimals=1))
 
+                overall_base_col = f"overall_score_{base_suffix}"
+                overall_target_col = f"overall_score_{target_suffix}"
+                if pd.notna(row.get(overall_base_col)) and pd.notna(row.get(overall_target_col)):
+                    st.subheader("Overall score: season comparison")
+                    overall_compare = pd.DataFrame({
+                        "season": [base_label, target_label],
+                        "overall_score": [row[overall_base_col], row[overall_target_col]],
+                    })
+                    fig_overall = px.bar(
+                        overall_compare, x="season", y="overall_score",
+                        title=f"{player_name}: overall_score by season",
+                    )
+                    fig_overall.update_layout(xaxis_title="")
+                    st.plotly_chart(fig_overall, use_container_width=True)
+
                 st.subheader("Score changes")
                 change_cols = [c for c in dev_df.columns if c.endswith("_change")]
                 changes = {c: row[c] for c in change_cols if pd.notna(row.get(c))}
                 if changes:
                     st.dataframe(pd.DataFrame([changes]), hide_index=True, use_container_width=True)
+
+                score_change_cols = [c for c in change_cols if c.endswith("_score_change")]
+                score_changes = {c: row[c] for c in score_change_cols if pd.notna(row.get(c))}
+                if score_changes:
+                    change_chart_df = pd.DataFrame({
+                        "metric": [c[: -len("_score_change")].replace("_", " ") for c in score_changes],
+                        "change": list(score_changes.values()),
+                    }).sort_values("change")
+                    fig_changes = px.bar(
+                        change_chart_df, x="change", y="metric", orientation="h",
+                        color="change", color_continuous_scale="RdYlGn",
+                        title=f"{player_name}: score changes by category ({base_label} -> {target_label})",
+                    )
+                    fig_changes.update_layout(yaxis_title="", coloraxis_showscale=False)
+                    st.plotly_chart(fig_changes, use_container_width=True)
 
                 st.subheader("Flags")
                 flag_cols = [
@@ -533,6 +600,26 @@ def render_player_development():
                 flags = {c: row[c] for c in flag_cols if c in dev_df.columns}
                 if flags:
                     st.dataframe(pd.DataFrame([flags]), hide_index=True, use_container_width=True)
+
+    st.divider()
+    st.subheader("Trends across all matched players")
+    age_col = f"age_{target_suffix}"
+    hover_cols = [c for c in [f"team_{target_suffix}", f"position_{target_suffix}"] if c in dev_df.columns]
+    trend_col1, trend_col2 = st.columns(2)
+    with trend_col1:
+        if age_col in dev_df.columns and "overall_score_change" in dev_df.columns:
+            fig_age = px.scatter(
+                dev_df, x=age_col, y="overall_score_change", hover_data=["player_name"] + hover_cols,
+                title=f"Age ({target_label}) vs overall_score change",
+            )
+            st.plotly_chart(fig_age, use_container_width=True)
+    with trend_col2:
+        if "minutes_change" in dev_df.columns and "overall_score_change" in dev_df.columns:
+            fig_minutes = px.scatter(
+                dev_df, x="minutes_change", y="overall_score_change", hover_data=["player_name"] + hover_cols,
+                title="Minutes change vs overall_score change",
+            )
+            st.plotly_chart(fig_minutes, use_container_width=True)
 
     st.divider()
     st.subheader("Full multi-season development report")

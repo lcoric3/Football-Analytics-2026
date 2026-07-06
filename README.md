@@ -538,6 +538,11 @@ If a required CSV/chart/report is missing for the selected season, the
 affected page shows an error pointing at `python main.py` instead of
 crashing the app.
 
+The dashboard also includes interactive Plotly charts (bar, scatter, and
+box charts you can hover/zoom on) throughout the Overview and Multi-season
+development pages, built entirely from the CSVs above - no extra data or
+API calls required.
+
 ## Multi-season player development
 
 `src/player_development.py` compares every player who has scored,
