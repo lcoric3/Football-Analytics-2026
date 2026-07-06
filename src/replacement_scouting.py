@@ -159,32 +159,84 @@ def find_replacement_targets(
     return result[empty_columns]
 
 
-# A handful of representative searches, saved to
-# REPLACEMENT_OUTPUT_CSV_PATH on every pipeline run so the feature is
-# demonstrated without requiring an interactive session.
+# Preferred example players for the demonstration searches below - see the
+# matching note in ml_models.py's EXAMPLE_SIMILARITY_QUERIES. These names
+# come from the 2025/2026 HNL squad, so build_example_replacement_queries()
+# falls back to an auto-picked stand-in (top attacker/midfielder/defender/
+# young talent) for a season that doesn't have them.
+#
+# example_slot mirrors ml_models.EXAMPLE_SIMILARITY_QUERIES's - a stable
+# identifier for "which demonstration example this is", carried through to
+# the saved CSV so report.py can find "the attacker example" without
+# matching on player name/role (two slots can resolve to the same fallback
+# player in a given season, but never share an example_slot).
 EXAMPLE_REPLACEMENT_QUERIES = [
-    {"player_name": "Dion Beljo"},
-    {"player_name": "Ismaël Bennacer"},
-    {"player_name": "Sergi Domínguez"},
+    {
+        "player_name": "Dion Beljo", "example_slot": "attacker_example",
+        "fallback_position": "Attacker", "fallback_score_col": "attacking_score",
+    },
+    {
+        "player_name": "Ismaël Bennacer", "example_slot": "midfielder_example",
+        "fallback_position": "Midfielder", "fallback_score_col": "overall_score",
+    },
+    {
+        "player_name": "Sergi Domínguez", "example_slot": "defender_example",
+        "fallback_position": "Defender", "fallback_score_col": "passer_defender_score",
+    },
     # "if useful": a young-player example, restricted to candidates the
     # same age or younger so it reads as "who could develop into this
     # role next", not just "who plays like him right now".
-    {"player_name": "Gabriel Vidovic", "max_age": 23},
+    {
+        "player_name": "Gabriel Vidovic", "max_age": 23, "example_slot": "young_talent_example",
+        "fallback_score_col": "age_potential_score", "fallback_max_age": 23,
+    },
 ]
 
 
-def build_replacement_examples(ml_df, queries=EXAMPLE_REPLACEMENT_QUERIES, top_n=10):
+def build_example_replacement_queries(ml_df, queries=EXAMPLE_REPLACEMENT_QUERIES):
+    """Resolves each entry in `queries` to a real player in `ml_df` (the
+    preferred name if present, otherwise a data-driven fallback - see
+    ml_models.resolve_example_player). Returns dicts with "player_name",
+    "example_slot", and whatever find_replacement_targets()-ready kwargs
+    (max_age, ...) the query had - fallback-only keys stripped out."""
+    resolved = []
+    for query in queries:
+        fallback_keys = {"fallback_position", "fallback_score_col", "fallback_max_age"}
+        player_name = ml_models.resolve_example_player(
+            ml_df, query["player_name"],
+            fallback_position=query.get("fallback_position"),
+            fallback_score_col=query.get("fallback_score_col", "overall_score"),
+            fallback_max_age=query.get("fallback_max_age"),
+        )
+        if player_name is None:
+            continue
+        resolved.append({
+            "player_name": player_name,
+            **{k: v for k, v in query.items() if k not in fallback_keys and k != "player_name"},
+        })
+    return resolved
+
+
+def build_replacement_examples(ml_df, queries=None, top_n=10):
+    if queries is None:
+        queries = build_example_replacement_queries(ml_df)
+
     tables = []
     for query in queries:
         player_name = query["player_name"]
-        filter_kwargs = {k: v for k, v in query.items() if k != "player_name"}
+        example_slot = query.get("example_slot")
+        filter_kwargs = {
+            k: v for k, v in query.items() if k not in ("player_name", "example_slot")
+        }
         try:
-            tables.append(find_replacement_targets(ml_df, player_name, top_n=top_n, **filter_kwargs))
+            table = find_replacement_targets(ml_df, player_name, top_n=top_n, **filter_kwargs)
+            table.insert(1, "example_slot", example_slot)
+            tables.append(table)
         except ValueError as exc:
             logger.warning("Replacement scouting example skipped: %s", exc)
     if not tables:
         return pd.DataFrame(columns=[
-            "query_player", "role", "rank", "player_name", "team_name", "position",
+            "query_player", "example_slot", "role", "rank", "player_name", "team_name", "position",
             "age", "minutes", "similarity", "age_potential_score", "underrated_score",
             "reliability_percentile", "younger_bonus", "replacement_score",
         ])

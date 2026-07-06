@@ -1,0 +1,41 @@
+query_player,role,example_slot,filters,rank,player_name,team_name,position,similarity
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,1,Martin Baturina,Dinamo Zagreb,Midfielder,0.9560545821122377
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,2,Amer Gojak,Rijeka,Midfielder,0.8935319862439113
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,3,Marko Rog,Dinamo Zagreb,Midfielder,0.8863741362139752
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,4,Lukas Kacavenda,Dinamo Zagreb,Midfielder,0.8784370046567711
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,5,Petar Pusic,Osijek,Midfielder,0.7866310254064979
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,6,Ivan Ćalušić,Istra 1961,Midfielder,0.7810530710642889
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,7,Toni Fruk,Rijeka,Midfielder,0.7721986886707247
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,8,Luka Mamic,Varaždin,Midfielder,0.7527829130912577
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,9,Mihail Caimacov,Slaven Koprivnica,Midfielder,0.7163641805063856
+Luka Stojkovic,midfielder,midfielder_example,same_position_only=True,10,Adriano Jagusic,Slaven Koprivnica,Midfielder,0.7145794985271089
+Ante Suto,attacker,attacker_example,,1,Marko Livaja,Hajduk Split,Attacker,0.9926617683727494
+Ante Suto,attacker,attacker_example,,2,Martin Slogar,Gorica,Attacker,0.9908780578045365
+Ante Suto,attacker,attacker_example,,3,Arnel Jakupovic,Osijek,Attacker,0.9900906292382048
+Ante Suto,attacker,attacker_example,,4,Arijan Ademi,Dinamo Zagreb,Midfielder,0.9821552698150301
+Ante Suto,attacker,attacker_example,,5,Vinko Rozic,Istra 1961,Attacker,0.9779542487927724
+Ante Suto,attacker,attacker_example,,6,Sandro Kulenovic,Dinamo Zagreb,Attacker,0.9722626979844384
+Ante Suto,attacker,attacker_example,,7,Nathanaël Mbuku,Dinamo Zagreb,Attacker,0.9719361508289619
+Ante Suto,attacker,attacker_example,,8,Lovre Kulusic,Šibenik,Midfielder,0.9717681770853663
+Ante Suto,attacker,attacker_example,,9,Robert Mudrazija,Lokomotiva Zagreb,Midfielder,0.9609820646052922
+Ante Suto,attacker,attacker_example,,10,Dimitar Mitrovski,Varaždin,Attacker,0.9605712908226373
+Stephane Keller,passer_defender,defender_example,,1,Leonardo Sigali,Lokomotiva Zagreb,Defender,0.9349205179776622
+Stephane Keller,passer_defender,defender_example,,2,Luka Skaricic,Varaždin,Defender,0.9332121485128172
+Stephane Keller,passer_defender,defender_example,,3,Tomislav Duvnjak,Varaždin,Midfielder,0.9242004532465475
+Stephane Keller,passer_defender,defender_example,,4,Filip Uremovic,Hajduk Split,Defender,0.9051635711330597
+Stephane Keller,passer_defender,defender_example,,5,Ivan Nekic,Varaždin,Defender,0.8974900231626589
+Stephane Keller,passer_defender,defender_example,,6,Novak Tepsic,Varaždin,Defender,0.8944217261663047
+Stephane Keller,passer_defender,defender_example,,7,Emin Hasic,Osijek,Defender,0.869520787706661
+Stephane Keller,passer_defender,defender_example,,8,Tomislav Bozic,Slaven Koprivnica,Defender,0.862948418646276
+Stephane Keller,passer_defender,defender_example,,9,Hrvoje Babec,Osijek,Midfielder,0.8540019384021323
+Stephane Keller,passer_defender,defender_example,,10,Luka Jelenic,Osijek,Defender,0.8327201261778738
+Adriano Jagusic,overall,young_talent_example,max_age<=23,1,Lukas Kacavenda,Dinamo Zagreb,Midfielder,0.6608023759407697
+Adriano Jagusic,overall,young_talent_example,max_age<=23,2,Martin Baturina,Dinamo Zagreb,Midfielder,0.5988755680334656
+Adriano Jagusic,overall,young_talent_example,max_age<=23,3,Luka Stojkovic,Dinamo Zagreb,Midfielder,0.5547216562287053
+Adriano Jagusic,overall,young_talent_example,max_age<=23,4,Nail Omerovic,Osijek,Attacker,0.5089193022026015
+Adriano Jagusic,overall,young_talent_example,max_age<=23,5,Luka Kapulica,Gorica,Midfielder,0.503682015029252
+Adriano Jagusic,overall,young_talent_example,max_age<=23,6,Juan Córdoba,Dinamo Zagreb,Attacker,0.4812847471683837
+Adriano Jagusic,overall,young_talent_example,max_age<=23,7,Marko Soldo,Osijek,Midfielder,0.45686336362293134
+Adriano Jagusic,overall,young_talent_example,max_age<=23,8,Luka Vrbancic,Lokomotiva Zagreb,Midfielder,0.4488117735710595
+Adriano Jagusic,overall,young_talent_example,max_age<=23,9,Vinko Rozic,Istra 1961,Attacker,0.4258433631779615
+Adriano Jagusic,overall,young_talent_example,max_age<=23,10,Stipe Biuk,Hajduk Split,Attacker,0.414992740786402

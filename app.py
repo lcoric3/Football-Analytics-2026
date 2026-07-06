@@ -5,7 +5,7 @@ src/season_config.py, defaults to 2025/2026).
 Read-only view over files the pipeline (`python main.py`) already produced -
 this file never calls the SportMonks API and never writes or recomputes any
 data file. It only reads CSVs from data/processed/ and data/output/, charts
-from reports/figures/, and the Markdown reports in reports/.
+from reports/figures_<season>/, and the Markdown reports in reports/.
 
 Run with:
     streamlit run app.py
@@ -27,8 +27,7 @@ ML_FEATURES_CSV = season_config.processed_path("hnl_ml_features")
 TOP_PLAYERS_CSV = season_config.output_path("top_players_hnl")
 SPECIALIST_CSV = season_config.output_path("specialist_rankings_hnl")
 CLUSTERS_CSV = season_config.output_path("player_clusters")
-# Not yet season-suffixed - see the matching note in src/visualization.py.
-FIGURES_DIR = "reports/figures"
+FIGURES_DIR = season_config.figures_dir()
 REPORT_MD = season_config.scouting_report_path()
 CLUSTER_PROFILES_MD = season_config.cluster_profiles_report_path()
 
@@ -50,9 +49,9 @@ RANKING_CATEGORIES = {
 # players by visualization.py - shown as a bonus if the searched player
 # happens to be one of them.
 EXAMPLE_SIMILARITY_CHARTS = {
-    "Dion Beljo": "player_similarity_beljo.png",
-    "Ismaël Bennacer": "player_similarity_bennacer.png",
-    "Sergi Domínguez": "player_similarity_dominguez.png",
+    "Dion Beljo": "player_similarity_attacker_example.png",
+    "Ismaël Bennacer": "player_similarity_midfielder_example.png",
+    "Sergi Domínguez": "player_similarity_defender_example.png",
 }
 
 

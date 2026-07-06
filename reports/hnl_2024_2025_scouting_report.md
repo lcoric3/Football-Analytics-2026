@@ -1,23 +1,23 @@
-# HNL 2025/2026 Scouting Report
+# HNL 2024/2025 Scouting Report
 
-*Generated 2026-07-06 by `src/report.py`, from the current contents of `data/` and `reports/figures_2025_2026/`.*
+*Generated 2026-07-06 by `src/report.py`, from the current contents of `data/` and `reports/figures_2024_2025/`.*
 
 ## 1. Project Summary
 
-This project turns raw SportMonks player statistics for the Croatian 1. HNL 2025/2026 season into a full scouting data pipeline: cleaned data, per-90 features, explainable scouting scores, age-aware potential scoring, team-context/underrated scoring, position- and role-specific rankings, a filterable player-similarity search, statistical replacement-target shortlists, and named player clusters. Every number in this report is read directly from the CSVs the pipeline produces (`data/processed/`, `data/output/`) - nothing here is hand-picked.
+This project turns raw SportMonks player statistics for the Croatian 1. HNL 2024/2025 season into a full scouting data pipeline: cleaned data, per-90 features, explainable scouting scores, age-aware potential scoring, team-context/underrated scoring, position- and role-specific rankings, a filterable player-similarity search, statistical replacement-target shortlists, and named player clusters. Every number in this report is read directly from the CSVs the pipeline produces (`data/processed/`, `data/output/`) - nothing here is hand-picked.
 
 ## 2. Data Source
 
-All player statistics come from the [SportMonks](https://www.sportmonks.com/) Football API, scoped to the Croatian HNL / 1. HNL, 2025/2026 season. `fetch_data.py` finds the league/season IDs, paginates through every team's squad statistics, and saves the raw JSON response before anything is cleaned or transformed - so the raw response is always available to re-process if the cleaning logic changes (as it did in Stage 1, below).
+All player statistics come from the [SportMonks](https://www.sportmonks.com/) Football API, scoped to the Croatian HNL / 1. HNL, 2024/2025 season. `fetch_data.py` finds the league/season IDs, paginates through every team's squad statistics, and saves the raw JSON response before anything is cleaned or transformed - so the raw response is always available to re-process if the cleaning logic changes (as it did in Stage 1, below).
 
 ## 3. Dataset Summary
 
 | Metric | Count |
 |:---|:---|
 | Raw player rows (minutes > 0, before de-duplication) | 345 |
-| Rows after de-duplication | 332 |
-| Duplicate player rows removed | 13 |
-| Players eligible for scoring (>= 450 minutes) | 218 |
+| Rows after de-duplication | 329 |
+| Duplicate player rows removed | 16 |
+| Players eligible for scoring (>= 450 minutes) | 202 |
 
 The raw SportMonks response actually contains far more than the original pipeline used: of 55 distinct statistic types present in the JSON, only 15 were mapped to columns before Stage 1. Dribbles, key passes, crosses, long balls, aerials won, clearances, and fouls drawn were sitting in the data unused - Stage 1 mapped 11 of them (see Section 5 and Sections 12-16).
 
@@ -29,7 +29,7 @@ Raw totals (goals, tackles, passes...) aren't comparable between players directl
 
 Some players' SportMonks records list squad membership at two clubs in the same season (typically a mid-season transfer or loan). That duplicated their row in the cleaned data - but `statistics.details` isn't split per club spell, so **both rows carried the exact same full-season totals**. Left alone, that would double-count those players in every per-90 rate and every ranking they appear in.
 
-**The fix:** keep exactly one row per `player_id` - the row with the most minutes played. If the two rows disagreed on team name, that's logged as a warning during the pipeline run so it's visible, not silently dropped. This took the dataset from **345 rows to 332 rows** (13 duplicate rows removed).
+**The fix:** keep exactly one row per `player_id` - the row with the most minutes played. If the two rows disagreed on team name, that's logged as a warning during the pipeline run so it's visible, not silently dropped. This took the dataset from **345 rows to 329 rows** (16 duplicate rows removed).
 
 ## 6. Top 10 Overall Players
 
@@ -37,18 +37,18 @@ Some players' SportMonks records list squad membership at two clubs in the same 
 
 | Rank | Player | Team | Position | Age | Overall |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 22 | 85.2 |
-| 2 | Marko Soldo | Dinamo Zagreb | Midfielder | 22 | 82.2 |
-| 3 | Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 79.4 |
-| 4 | Ljuban Crepulja | Slaven Koprivnica | Midfielder | 32 | 74.5 |
-| 5 | Ismaël Bennacer | Dinamo Zagreb | Midfielder | 28 | 74.0 |
-| 6 | Iker Pozo | Gorica | Midfielder | 25 | 72.2 |
-| 7 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 70.3 |
-| 8 | Scott McKenna | Dinamo Zagreb | Defender | 29 | 70.2 |
-| 9 | Mateo Lisica | Dinamo Zagreb | Attacker | 22 | 68.8 |
-| 10 | Miha Zajc | Dinamo Zagreb | Midfielder | 32 | 68.5 |
+| 1 | Nathanaël Mbuku | Dinamo Zagreb | Attacker | 24 | 84.2 |
+| 2 | Raúl Torrente | Dinamo Zagreb | Defender | 24 | 75.6 |
+| 3 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 22 | 73.0 |
+| 4 | Jurica Prsir | Gorica | Midfielder | 26 | 72.8 |
+| 5 | Arijan Ademi | Dinamo Zagreb | Midfielder | 35 | 72.5 |
+| 6 | Lukas Kacavenda | Dinamo Zagreb | Midfielder | 23 | 71.9 |
+| 7 | Luka Jelenic | Osijek | Defender | 26 | 71.8 |
+| 8 | Marko Pjaca | Dinamo Zagreb | Attacker | 31 | 71.7 |
+| 9 | Arbër Hoxha | Dinamo Zagreb | Attacker | 27 | 69.6 |
+| 10 | Dimitar Mitrovski | Varaždin | Attacker | 27 | 69.0 |
 
-![Top 15 overall players](figures_2025_2026/top_overall_players.png)
+![Top 15 overall players](figures_2024_2025/top_overall_players.png)
 
 `overall_score` blends attacking, creative, and defensive contribution (each judged against same-position peers) plus a small discipline factor. Because each ingredient is now position-aware (Section 22 explains why), this list is no longer structurally tilted toward all-round midfielders - a specialist can top it by excelling relative to their own role's peers.
 
@@ -56,18 +56,18 @@ Some players' SportMonks records list squad membership at two clubs in the same 
 
 | Rank | Player | Team | Position | Age | Overall |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 22 | 85.2 |
-| 2 | Marko Soldo | Dinamo Zagreb | Midfielder | 22 | 82.2 |
-| 3 | Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 79.4 |
-| 4 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 70.3 |
-| 5 | Mateo Lisica | Dinamo Zagreb | Attacker | 22 | 68.8 |
-| 6 | Niko Sigur | Hajduk Split | Midfielder | 22 | 64.6 |
-| 7 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 22 | 64.1 |
-| 8 | Iker Almena | Hajduk Split | Attacker | 22 | 61.4 |
-| 9 | Fran Topic | Dinamo Zagreb | Attacker | 22 | 60.9 |
-| 10 | Samuel Akere | Osijek | Attacker | 22 | 60.6 |
+| 1 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 22 | 73.0 |
+| 2 | Lukas Kacavenda | Dinamo Zagreb | Midfielder | 23 | 71.9 |
+| 3 | Moris Valincic | Istra 1961 | Defender | 23 | 68.2 |
+| 4 | Emin Hasic | Osijek | Defender | 23 | 66.8 |
+| 5 | Ivan Cvijanovic | Osijek | Defender | 22 | 65.4 |
+| 6 | Vinko Rozic | Istra 1961 | Attacker | 22 | 64.7 |
+| 7 | Niko Sigur | Hajduk Split | Midfielder | 22 | 64.0 |
+| 8 | Ivan Laća | Šibenik | Attacker | 23 | 63.8 |
+| 9 | Marko Soldo | Osijek | Midfielder | 22 | 62.8 |
+| 10 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 61.8 |
 
-![Top 15 U23 players](figures_2025_2026/top_u23_players.png)
+![Top 15 U23 players](figures_2024_2025/top_u23_players.png)
 
 Same `overall_score` ranking, filtered to age 23 and under. Useful for spotting resale/development value rather than just current output - see Section 8 for a lens that also weighs age and playing-time reliability, not just current output.
 
@@ -78,16 +78,16 @@ Goalkeeping requires different inputs than outfield play, so `goalkeeper_score` 
 
 | Rank | Player | Team | Age | Goalkeeper Score |
 |:---|:---|:---|:---|:---|
-| 1 | Ivan Filipovic | Dinamo Zagreb | 31 | 65.9 |
-| 2 | Dominik Livakovic | Dinamo Zagreb | 31 | 65.9 |
-| 3 | Oliver Zelenika | Varaždin | 33 | 64.1 |
-| 4 | Toni Silic | Hajduk Split | 22 | 61.2 |
-| 5 | Martin Zlomislic | Rijeka | 27 | 60.6 |
-| 6 | Marko Malenica | Osijek | 32 | 60.0 |
-| 7 | Ivica Ivusic | Hajduk Split | 31 | 60.0 |
-| 8 | Ivan Nevistic | Dinamo Zagreb | 27 | 58.8 |
-| 9 | Mateusz Stolarski | Slaven Koprivnica | 35 | 54.7 |
-| 10 | Josip Posavec | Lokomotiva Zagreb | 30 | 54.7 |
+| 1 | Ivan Sušak | Slaven Koprivnica | 28 | 69.3 |
+| 2 | Oliver Zelenika | Varaždin | 33 | 67.9 |
+| 3 | Ivan Lucic | Hajduk Split | 31 | 66.4 |
+| 4 | Ivan Banic | Gorica | 31 | 64.3 |
+| 5 | Lovro Majkic | Istra 1961 | 26 | 61.4 |
+| 6 | Martin Zlomislic | Rijeka | 27 | 56.4 |
+| 7 | Danijel Zagorac | Dinamo Zagreb | 39 | 56.4 |
+| 8 | Ivan Nevistic | Dinamo Zagreb | 27 | 53.6 |
+| 9 | Marko Malenica | Osijek | 32 | 48.6 |
+| 10 | Zvonimir Subaric | Lokomotiva Zagreb | 29 | 45.7 |
 
 **Caveat:** this is a simple, explainable model over a small population (17-23 eligible goalkeepers) - it is not equivalent to a specialized goalkeeping model (e.g. post-shot expected goals / shot-stopping value above expected), which would need shot placement and quality data this API doesn't expose here.
 
@@ -108,34 +108,34 @@ Like `overall_score`, this is an **outfield-only** lens - goalkeepers are exclud
 
 | Rank | Player | Team | Position | Age | Overall | Age Bonus | Reliability | Potential |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| 1 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 22 | 85.2 | 2.0 | 4.0 | 91.2 |
-| 2 | Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 79.4 | 4.0 | 7.1 | 90.5 |
-| 3 | Marko Soldo | Dinamo Zagreb | Midfielder | 22 | 82.2 | 2.0 | 1.3 | 85.5 |
-| 4 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 70.3 | 6.0 | 5.1 | 81.4 |
-| 5 | Mateo Lisica | Dinamo Zagreb | Attacker | 22 | 68.8 | 2.0 | 4.0 | 74.8 |
-| 6 | Niko Sigur | Hajduk Split | Midfielder | 22 | 64.6 | 2.0 | 6.3 | 72.9 |
-| 7 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 22 | 64.1 | 2.0 | 5.3 | 71.4 |
-| 8 | Matija Subotic | Lokomotiva Zagreb | Midfielder | 18 | 54.3 | 10.0 | 6.0 | 70.3 |
-| 9 | Ante Kavelj | Gorica | Midfielder | 20 | 55.8 | 6.0 | 7.9 | 69.7 |
-| 10 | Filip Kruselj | Slaven Koprivnica | Defender | 21 | 58.7 | 4.0 | 6.3 | 69.1 |
+| 1 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 22 | 73.0 | 2.0 | 4.2 | 79.2 |
+| 2 | Moris Valincic | Istra 1961 | Defender | 23 | 68.2 | 0.0 | 6.9 | 75.2 |
+| 3 | Lukas Kacavenda | Dinamo Zagreb | Midfielder | 23 | 71.9 | 0.0 | 1.0 | 72.8 |
+| 4 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 61.8 | 6.0 | 4.0 | 71.8 |
+| 5 | Marko Soldo | Osijek | Midfielder | 22 | 62.8 | 2.0 | 6.3 | 71.1 |
+| 6 | Niko Sigur | Hajduk Split | Midfielder | 22 | 64.0 | 2.0 | 4.5 | 70.5 |
+| 7 | Emin Hasic | Osijek | Defender | 23 | 66.8 | 0.0 | 3.3 | 70.1 |
+| 8 | Vinko Rozic | Istra 1961 | Attacker | 22 | 64.7 | 2.0 | 2.2 | 68.9 |
+| 9 | Ivan Cvijanovic | Osijek | Defender | 22 | 65.4 | 2.0 | 1.4 | 68.8 |
+| 10 | Ivan Laća | Šibenik | Attacker | 23 | 63.8 | 0.0 | 4.2 | 68.0 |
 
-**`best_u23_players_by_potential`** (saved alongside `best_young_talents` in `data/output/top_players_hnl_2025_2026.csv`) is the exact same U23 pool and sort order as the table above - it's kept as a second category label specifically so it sits next to `best_u23` (Section 7) in the output, making the "current output" vs. "potential-adjusted" comparison for the same age bracket explicit.
+**`best_u23_players_by_potential`** (saved alongside `best_young_talents` in `data/output/top_players_hnl_2024_2025.csv`) is the exact same U23 pool and sort order as the table above - it's kept as a second category label specifically so it sits next to `best_u23` (Section 7) in the output, making the "current output" vs. "potential-adjusted" comparison for the same age bracket explicit.
 
 
 ### Best U21 Players (age <= 21, by potential)
 
 | Rank | Player | Team | Position | Age | Overall | Potential |
 |:---|:---|:---|:---|:---|:---|:---|
-| 1 | Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 79.4 | 90.5 |
-| 2 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 70.3 | 81.4 |
-| 3 | Matija Subotic | Lokomotiva Zagreb | Midfielder | 18 | 54.3 | 70.3 |
-| 4 | Ante Kavelj | Gorica | Midfielder | 20 | 55.8 | 69.7 |
-| 5 | Filip Kruselj | Slaven Koprivnica | Defender | 21 | 58.7 | 69.1 |
-| 6 | Roko Brajkovic | Hajduk Split | Attacker | 21 | 60.5 | 68.0 |
-| 7 | Matteo Pérez Vinlöf | Dinamo Zagreb | Defender | 20 | 56.7 | 67.6 |
-| 8 | Rokas Pukstas | Hajduk Split | Midfielder | 21 | 56.4 | 67.2 |
-| 9 | Branimir Mlacic | Hajduk Split | Defender | 19 | 52.7 | 64.2 |
-| 10 | Luka Vrzic | Gorica | Attacker | 19 | 52.4 | 63.7 |
+| 1 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 61.8 | 71.8 |
+| 2 | Agyemang Morrison | Šibenik | Defender | 21 | 55.0 | 66.4 |
+| 3 | Bruno Durdov | Hajduk Split | Attacker | 18 | 51.6 | 63.4 |
+| 4 | Lovre Kulusic | Šibenik | Midfielder | 19 | 52.6 | 62.1 |
+| 5 | Matej Sakota | Slaven Koprivnica | Attacker | 21 | 54.4 | 58.9 |
+| 6 | Luka Vrbancic | Lokomotiva Zagreb | Midfielder | 21 | 50.1 | 58.7 |
+| 7 | Ante Kavelj | Šibenik | Midfielder | 20 | 46.4 | 56.2 |
+| 8 | Rokas Pukstas | Hajduk Split | Midfielder | 21 | 44.1 | 51.8 |
+| 9 | Luka Kapulica | Gorica | Midfielder | 21 | 44.6 | 50.2 |
+| 10 | Feta Fetai | Lokomotiva Zagreb | Midfielder | 21 | 39.2 | 49.3 |
 
 A stricter age bracket than U23 - useful for identifying development-squad-eligible talent specifically, not just "young by transfer-market standards".
 
@@ -143,18 +143,18 @@ A stricter age bracket than U23 - useful for identifying development-squad-eligi
 
 | Rank | Player | Team | Position | Age | Attacking |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Dion Beljo | Dinamo Zagreb | Attacker | 24 | 99.4 |
-| 2 | Sandro Kulenovic | Dinamo Zagreb | Attacker | 26 | 98.8 |
-| 3 | Michele Sego | Hajduk Split | Attacker | 25 | 93.2 |
-| 4 | Monsef Bakrar | Dinamo Zagreb | Attacker | 25 | 90.1 |
-| 5 | Smail Prevljak | Istra 1961 | Attacker | 31 | 87.0 |
-| 6 | Jakov Puljic | Vukovar | Attacker | 32 | 86.4 |
-| 7 | Ivan Mamut | Varaždin | Attacker | 29 | 86.4 |
-| 8 | Ante Erceg | Gorica | Attacker | 36 | 85.2 |
-| 9 | Marko Livaja | Hajduk Split | Attacker | 32 | 82.7 |
-| 10 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 22 | 79.6 |
+| 1 | Ante Suto | Slaven Koprivnica | Attacker | 26 | 97.6 |
+| 2 | Vinko Rozic | Istra 1961 | Attacker | 22 | 97.0 |
+| 3 | Sandro Kulenovic | Dinamo Zagreb | Attacker | 26 | 97.0 |
+| 4 | Marko Livaja | Hajduk Split | Attacker | 32 | 92.7 |
+| 5 | Hernâni | Osijek | Attacker | 34 | 87.9 |
+| 6 | Matej Sakota | Slaven Koprivnica | Attacker | 21 | 83.3 |
+| 7 | Nathanaël Mbuku | Dinamo Zagreb | Attacker | 24 | 82.4 |
+| 8 | Mirko Susak | Lokomotiva Zagreb | Attacker | 22 | 80.6 |
+| 9 | Duje Cop | Rijeka | Attacker | 36 | 80.6 |
+| 10 | Ilija Nestorovski | Slaven Koprivnica | Attacker | 36 | 79.4 |
 
-![Top 10 goals per 90](figures_2025_2026/top10_goals_per90.png)
+![Top 10 goals per 90](figures_2024_2025/top10_goals_per90.png)
 
 `attacking_score` is goal output, shots on target, and finishing quality, judged against other attackers - not raw goal totals, so a striker who has played fewer minutes but finishes efficiently isn't buried under a regular starter with more minutes.
 
@@ -162,18 +162,18 @@ A stricter age bracket than U23 - useful for identifying development-squad-eligi
 
 | Rank | Player | Team | Position | Age | Creative |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Mateo Lisica | Dinamo Zagreb | Attacker | 22 | 98.8 |
-| 2 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 22 | 96.3 |
-| 3 | Ljuban Crepulja | Slaven Koprivnica | Midfielder | 32 | 95.4 |
-| 4 | Ismaël Bennacer | Dinamo Zagreb | Midfielder | 28 | 91.3 |
-| 5 | Domagoj Antolic | Lokomotiva Zagreb | Midfielder | 36 | 90.8 |
-| 6 | Scott McKenna | Dinamo Zagreb | Defender | 29 | 88.6 |
-| 7 | Ivan Canjuga | Varaždin | Attacker | 20 | 88.3 |
-| 8 | Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 87.4 |
-| 9 | Matteo Pérez Vinlöf | Dinamo Zagreb | Defender | 20 | 82.9 |
-| 10 | Branimir Mlacic | Hajduk Split | Defender | 19 | 82.7 |
+| 1 | Juan Córdoba | Dinamo Zagreb | Attacker | 22 | 98.8 |
+| 2 | Marko Pjaca | Dinamo Zagreb | Attacker | 31 | 93.3 |
+| 3 | Marko Rog | Dinamo Zagreb | Midfielder | 30 | 91.8 |
+| 4 | Stefan Ristovski | Dinamo Zagreb | Defender | 34 | 90.7 |
+| 5 | Arbër Hoxha | Dinamo Zagreb | Attacker | 27 | 89.1 |
+| 6 | Nathanaël Mbuku | Dinamo Zagreb | Attacker | 24 | 87.3 |
+| 7 | Martin Baturina | Dinamo Zagreb | Midfielder | 23 | 86.3 |
+| 8 | Petar Pusic | Osijek | Midfielder | 27 | 85.8 |
+| 9 | Mateo Les | Gorica | Defender | 26 | 83.8 |
+| 10 | Raúl Torrente | Dinamo Zagreb | Defender | 24 | 83.3 |
 
-![Top 10 assists per 90](figures_2025_2026/top10_assists_per90.png)
+![Top 10 assists per 90](figures_2024_2025/top10_assists_per90.png)
 
 Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to every position - it's a league-wide leaderboard of `creative_score` (assists, passing volume, passing quality), so a creative attacker or full-back can appear here too.
 
@@ -181,16 +181,16 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 | Rank | Player | Team | Position | Age | Defensive |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Mohamed Nasraoui | Istra 1961 | Defender | 23 | 96.3 |
-| 2 | Bruno Goda | Dinamo Zagreb | Defender | 28 | 82.9 |
-| 3 | Marcel Heister | Istra 1961 | Defender | 33 | 81.7 |
-| 4 | Elvir Durakovic | Gorica | Defender | 26 | 79.7 |
-| 5 | Denis Kolinger | Lokomotiva Zagreb | Defender | 32 | 77.2 |
-| 6 | Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 76.0 |
-| 7 | Tino Jukic | Lokomotiva Zagreb | Defender | 24 | 73.2 |
-| 8 | Advan Kadusic | Istra 1961 | Defender | 28 | 72.8 |
-| 9 | Gregor Sikosek | Varaždin | Defender | 32 | 72.0 |
-| 10 | Antonio Jakir | Slaven Koprivnica | Defender | 23 | 71.5 |
+| 1 | Novak Tepsic | Varaždin | Defender | 24 | 87.7 |
+| 2 | Iurie Iovu | Istra 1961 | Defender | 24 | 86.1 |
+| 3 | Stephane Keller | Istra 1961 | Defender | 24 | 81.9 |
+| 4 | Ivan Nekic | Varaždin | Defender | 25 | 78.7 |
+| 5 | Dario Melnjak | Hajduk Split | Defender | 33 | 77.8 |
+| 6 | Ivan Smolcic | Rijeka | Defender | 25 | 77.8 |
+| 7 | Moris Valincic | Istra 1961 | Defender | 23 | 75.9 |
+| 8 | Luka Jelenic | Osijek | Defender | 26 | 75.5 |
+| 9 | Leonardo Sigali | Lokomotiva Zagreb | Defender | 39 | 75.0 |
+| 10 | Filip Uremovic | Hajduk Split | Defender | 29 | 72.7 |
 
 `defensive_score` (tackles, interceptions, duel success) is judged against other defenders, so it measures 'best defender relative to defenders', not 'most tackles in the league' - see `best_duel_defenders` (Section 14) for the raw, pool-wide version of ball-winning ability.
 
@@ -198,18 +198,18 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 | Rank | Player | Team | Position | Dribbles/90 | Success % |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Ismaël Bennacer | Dinamo Zagreb | Midfielder | 2.17 | 62.2 |
-| 2 | Robin González | Vukovar | Midfielder | 2.02 | 58.9 |
-| 3 | Matej Vuk | Varaždin | Attacker | 2.12 | 59.7 |
-| 4 | Iker Pozo | Gorica | Midfielder | 1.69 | 64.6 |
-| 5 | Iker Almena | Hajduk Split | Attacker | 2.01 | 56.5 |
-| 6 | Toni Fruk | Rijeka | Midfielder | 1.65 | 52.0 |
-| 7 | Rokas Pukstas | Hajduk Split | Midfielder | 1.39 | 54.3 |
-| 8 | Matteo Pérez Vinlöf | Dinamo Zagreb | Defender | 1.58 | 64.4 |
-| 9 | David Mejía | Vukovar | Midfielder | 1.33 | 78.6 |
-| 10 | Leon Bošnjak | Slaven Koprivnica | Midfielder | 1.48 | 57.1 |
+| 1 | Martin Baturina | Dinamo Zagreb | Midfielder | 1.82 | 50.5 |
+| 2 | Adrion Pajaziti | Gorica | Midfielder | 1.09 | 54.3 |
+| 3 | Lukas Kacavenda | Dinamo Zagreb | Midfielder | 1.35 | 50.0 |
+| 4 | Ante Suto | Slaven Koprivnica | Attacker | 1.56 | 50.0 |
+| 5 | Bruno Petkovic | Dinamo Zagreb | Attacker | 1.04 | 50.0 |
+| 6 | Toni Fruk | Rijeka | Midfielder | 1.33 | 47.0 |
+| 7 | Iker Pozo | Šibenik | Midfielder | 1.04 | 55.6 |
+| 8 | Giorgi Gagua | Istra 1961 | Attacker | 0.83 | 51.9 |
+| 9 | Dimitar Mitrovski | Varaždin | Attacker | 1.58 | 45.1 |
+| 10 | Moris Valincic | Istra 1961 | Defender | 1.03 | 54.5 |
 
-![Dribbling volume vs efficiency](figures_2025_2026/dribblers_scatter.png)
+![Dribbling volume vs efficiency](figures_2024_2025/dribblers_scatter.png)
 
 `dribbling_score` combines volume (successful dribbles per 90) with quality (% of attempts that succeed), so a player who tries 10 to land 2 doesn't outrank one who tries 3 to land 2. The scatter above makes that trade-off visible: top-right is the rare combination of trying often *and* succeeding often.
 
@@ -217,18 +217,18 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 | Rank | Player | Team | Position | Passes/90 | Key Passes/90 | Accuracy % |
 |:---|:---|:---|:---|:---|:---|:---|
-| 1 | Ljuban Crepulja | Slaven Koprivnica | Midfielder | 65.3 | 1.76 | 89.6 |
-| 2 | Ismaël Bennacer | Dinamo Zagreb | Midfielder | 63.1 | 1.69 | 89.2 |
-| 3 | Tiago Dantas | Rijeka | Midfielder | 43.8 | 2.75 | 87.3 |
-| 4 | Domagoj Antolic | Lokomotiva Zagreb | Midfielder | 58.0 | 1.33 | 90.6 |
-| 5 | Hugo Guillamón | Hajduk Split | Midfielder | 69.7 | 1.18 | 87.3 |
-| 6 | Josip Misic | Dinamo Zagreb | Midfielder | 53.0 | 1.32 | 88.2 |
-| 7 | Marijan Cabraja | Gorica | Defender | 50.9 | 1.35 | 80.5 |
-| 8 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 45.7 | 3.03 | 84.6 |
-| 9 | Matteo Pérez Vinlöf | Dinamo Zagreb | Defender | 54.2 | 1.15 | 84.8 |
-| 10 | Noel Bodetic | Rijeka | Defender | 44.1 | 1.71 | 86.2 |
+| 1 | Ivan Rakitić | Hajduk Split | Midfielder | 57.9 | 2.20 | 81.4 |
+| 2 | Tiago Dantas | Osijek | Midfielder | 51.0 | 1.58 | 87.4 |
+| 3 | Petar Pusic | Osijek | Midfielder | 48.3 | 1.86 | 85.9 |
+| 4 | Ljuban Crepulja | Slaven Koprivnica | Midfielder | 51.6 | 1.25 | 85.2 |
+| 5 | Marko Rog | Dinamo Zagreb | Midfielder | 49.7 | 1.90 | 87.3 |
+| 6 | Jurica Prsir | Gorica | Midfielder | 51.9 | 1.37 | 82.9 |
+| 7 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 45.9 | 3.09 | 80.6 |
+| 8 | Stefan Ristovski | Dinamo Zagreb | Defender | 60.6 | 0.90 | 86.9 |
+| 9 | Simun Mikolcic | Osijek | Midfielder | 49.1 | 1.30 | 80.2 |
+| 10 | Martin Baturina | Dinamo Zagreb | Midfielder | 47.8 | 3.40 | 84.8 |
 
-![Passing: safe vs creative](figures_2025_2026/passers_scatter.png)
+![Passing: safe vs creative](figures_2024_2025/passers_scatter.png)
 
 `passing_score` deliberately treats pass accuracy as only one of five equally-weighted ingredients - a centre-back playing safe five-yard passes all game can hit 95% accuracy without creating anything. The scatter separates 'safe' passers (bottom-right: high accuracy, few key passes) from genuinely creative ones (top area: passes that actually lead to a shot).
 
@@ -236,18 +236,18 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 | Rank | Player | Team | Position | Tackles/90 | Interceptions/90 | Aerials Won/90 |
 |:---|:---|:---|:---|:---|:---|:---|
-| 1 | Mohamed Nasraoui | Istra 1961 | Defender | 2.69 | 2.48 | 2.82 |
-| 2 | Mario Marina | Varaždin | Midfielder | 3.44 | 1.37 | 2.18 |
-| 3 | Vinko Medjimorec | Slaven Koprivnica | Defender | 1.13 | 2.36 | 3.18 |
-| 4 | Denis Kolinger | Lokomotiva Zagreb | Defender | 1.87 | 1.47 | 3.34 |
-| 5 | Sergi Domínguez | Dinamo Zagreb | Defender | 1.96 | 1.33 | 3.04 |
-| 6 | Tino Jukic | Lokomotiva Zagreb | Defender | 1.81 | 1.42 | 2.00 |
-| 7 | Bruno Goda | Dinamo Zagreb | Defender | 2.72 | 1.36 | 2.04 |
-| 8 | Jakov Suver | Vukovar | Defender | 1.38 | 1.38 | 1.73 |
-| 9 | David Puclin | Varaždin | Midfielder | 3.80 | 1.07 | 2.02 |
-| 10 | Jon Mersinaj | Osijek | Defender | 1.60 | 1.20 | 2.40 |
+| 1 | Iurie Iovu | Istra 1961 | Defender | 2.67 | 1.29 | 3.54 |
+| 2 | Ivan Nekic | Varaždin | Defender | 1.86 | 1.80 | 2.54 |
+| 3 | Luka Jelenic | Osijek | Defender | 1.95 | 1.71 | 2.59 |
+| 4 | Slavko Bralic | Gorica | Defender | 1.56 | 1.85 | 3.60 |
+| 5 | Novak Tepsic | Varaždin | Defender | 2.66 | 1.45 | 1.61 |
+| 6 | Filip Uremovic | Hajduk Split | Defender | 1.68 | 1.46 | 3.30 |
+| 7 | Denis Kolinger | Lokomotiva Zagreb | Defender | 1.43 | 1.83 | 3.50 |
+| 8 | Luka Skaricic | Varaždin | Defender | 1.75 | 1.11 | 3.02 |
+| 9 | Ivan Smolcic | Rijeka | Defender | 2.13 | 2.07 | 2.30 |
+| 10 | Emin Hasic | Osijek | Defender | 2.59 | 1.36 | 2.52 |
 
-![Duel defending profile](figures_2025_2026/defender_profile_scatter.png)
+![Duel defending profile](figures_2024_2025/defender_profile_scatter.png)
 
 `duel_defending_score` is pure ball-winning ability (tackles, interceptions, aerials, duel success), judged league-wide rather than only against other defenders - so a defensively strong midfielder can also show up here, which `best_defenders` (position-filtered) would miss.
 
@@ -255,16 +255,16 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 | Rank | Player | Team | Age | Progressive MF | Key Passes/90 |
 |:---|:---|:---|:---|:---|:---|
-| 1 | Ismaël Bennacer | Dinamo Zagreb | 28 | 84.2 | 1.69 |
-| 2 | Adriano Jagusic | Slaven Koprivnica | 20 | 79.6 | 1.82 |
-| 3 | Miha Zajc | Dinamo Zagreb | 32 | 77.7 | 3.15 |
-| 4 | Ljuban Crepulja | Slaven Koprivnica | 32 | 76.9 | 1.76 |
-| 5 | Luka Stojkovic | Dinamo Zagreb | 22 | 74.6 | 3.03 |
-| 6 | David Mejía | Vukovar | 23 | 74.2 | 1.33 |
-| 7 | Toni Fruk | Rijeka | 25 | 74.2 | 1.90 |
-| 8 | Domagoj Antolic | Lokomotiva Zagreb | 36 | 71.2 | 1.33 |
-| 9 | Stjepan Loncar | Istra 1961 | 29 | 70.8 | 1.68 |
-| 10 | Tiago Dantas | Rijeka | 25 | 69.6 | 2.75 |
+| 1 | Luka Stojkovic | Dinamo Zagreb | 22 | 86.9 | 3.09 |
+| 2 | Martin Baturina | Dinamo Zagreb | 23 | 82.4 | 3.40 |
+| 3 | Toni Fruk | Rijeka | 25 | 78.3 | 1.91 |
+| 4 | Petar Pusic | Osijek | 27 | 77.9 | 1.86 |
+| 5 | Adriano Jagusic | Slaven Koprivnica | 20 | 77.5 | 1.12 |
+| 6 | Marko Rog | Dinamo Zagreb | 30 | 76.2 | 1.90 |
+| 7 | Stjepan Loncar | Istra 1961 | 29 | 74.2 | 1.98 |
+| 8 | Beyatt Lekoueiry | Istra 1961 | 21 | 71.3 | 1.56 |
+| 9 | Jurica Prsir | Gorica | 26 | 71.3 | 1.37 |
+| 10 | Lukas Kacavenda | Dinamo Zagreb | 23 | 70.1 | 1.84 |
 
 **Important caveat:** SportMonks doesn't expose true 'progressive passes' or 'progressive carries into the final third' on this plan, so `progressive_midfielder_score` is a **proxy** built from what is available - key passes, long balls, successful dribbles, and assists. It's a reasonable stand-in, not the real metric elite scouting platforms use, and should be read as 'forward-thinking involvement', not literal progressive-pass counts.
 
@@ -272,18 +272,18 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 | Rank | Player | Team | Age | Passer Defender | Passes/90 | Accuracy % |
 |:---|:---|:---|:---|:---|:---|:---|
-| 1 | Sergi Domínguez | Dinamo Zagreb | 21 | 79.0 | 73.3 | 87.1 |
-| 2 | Tino Jukic | Lokomotiva Zagreb | 24 | 72.9 | 55.4 | 85.8 |
-| 3 | Stjepan Radeljic | Rijeka | 28 | 71.4 | 59.1 | 85.6 |
-| 4 | Mohamed Nasraoui | Istra 1961 | 23 | 71.3 | 40.8 | 80.8 |
-| 5 | Ron Raci | Hajduk Split | 23 | 69.8 | 52.0 | 91.3 |
-| 6 | Bruno Goda | Dinamo Zagreb | 28 | 69.5 | 49.6 | 79.0 |
-| 7 | Ante Majstorovic | Rijeka | 32 | 68.8 | 60.7 | 85.4 |
-| 8 | Niko Galesic | Dinamo Zagreb | 25 | 68.5 | 61.6 | 87.0 |
-| 9 | Luka Skaricic | Varaždin | 24 | 66.9 | 47.3 | 83.7 |
-| 10 | Dominik Kovacic | Slaven Koprivnica | 32 | 66.8 | 48.1 | 86.4 |
+| 1 | Stephane Keller | Istra 1961 | 24 | 72.6 | 49.8 | 82.8 |
+| 2 | Ivan Nekic | Varaždin | 25 | 72.2 | 54.2 | 81.5 |
+| 3 | Leonardo Sigali | Lokomotiva Zagreb | 39 | 70.8 | 47.5 | 85.9 |
+| 4 | Moris Valincic | Istra 1961 | 23 | 69.0 | 46.6 | 84.6 |
+| 5 | Dario Maresic | Istra 1961 | 26 | 67.7 | 58.3 | 77.8 |
+| 6 | Ivan Smolcic | Rijeka | 25 | 67.7 | 41.2 | 70.4 |
+| 7 | Raúl Torrente | Dinamo Zagreb | 24 | 67.2 | 62.7 | 86.8 |
+| 8 | Filip Uremovic | Hajduk Split | 29 | 65.5 | 50.2 | 83.8 |
+| 9 | Maxime Bernauer | Dinamo Zagreb | 28 | 64.9 | 68.6 | 87.0 |
+| 10 | Alessandro Tuia | Osijek | 36 | 64.6 | 48.0 | 79.7 |
 
-![Passer defender profile](figures_2025_2026/passer_defender_scatter.png)
+![Passer defender profile](figures_2024_2025/passer_defender_scatter.png)
 
 `best_passer_defenders` and `best_ball_playing_defenders` are **the same ranking** - both are sorted by one shared `passer_defender_score` (50% within-position passing quality, 50% `defensive_score`) rather than two separate formulas, by design decision during Stage 1/2.
 
@@ -291,7 +291,7 @@ Unlike `best_midfield_creators` (position-filtered), `best_creators` is open to 
 
 ### Comparing the specialists
 
-![Specialist score comparison](figures_2025_2026/specialist_score_comparison.png)
+![Specialist score comparison](figures_2024_2025/specialist_score_comparison.png)
 
 A snapshot of the five specialist scores (Sections 12-16) side by side for a handful of players pulled from the top of each category. Notice how uneven each player's bars are - that's the point of having five separate scores instead of one: a player can be a 90+ dribbler and a below-average passer at the same time, and a single blended score would hide that.
 
@@ -311,14 +311,14 @@ underrated_score = overall_score + standout_bonus + weak_team_bonus
 
 | Player | Team | Position | Age | Overall | Standout | Weak-Team | Underrated |
 |:---|:---|:---|:---|:---|:---|:---|:---|
-| Gabriel Vidovic | Dinamo Zagreb | Attacker | 22 | 85.2 | 10.8 | 0.0 | 96.0 |
-| Marko Soldo | Dinamo Zagreb | Midfielder | 22 | 82.2 | 9.3 | 0.0 | 91.5 |
-| Sergi Domínguez | Dinamo Zagreb | Defender | 21 | 79.4 | 7.9 | 0.0 | 87.3 |
-| Ljuban Crepulja | Slaven Koprivnica | Midfielder | 32 | 74.5 | 11.9 | 0.0 | 86.4 |
-| Iker Pozo | Gorica | Midfielder | 25 | 72.2 | 11.8 | 0.9 | 85.0 |
-| Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 70.3 | 9.8 | 0.0 | 80.1 |
-| Ismaël Bennacer | Dinamo Zagreb | Midfielder | 28 | 74.0 | 5.2 | 0.0 | 79.3 |
-| Stjepan Radeljic | Rijeka | Defender | 28 | 68.3 | 9.7 | 0.8 | 78.8 |
+| Nathanaël Mbuku | Dinamo Zagreb | Attacker | 24 | 84.2 | 10.4 | 0.0 | 94.6 |
+| Jurica Prsir | Gorica | Midfielder | 26 | 72.8 | 14.1 | 2.8 | 89.7 |
+| Raúl Torrente | Dinamo Zagreb | Defender | 24 | 75.6 | 6.1 | 0.0 | 81.7 |
+| Luka Jelenic | Osijek | Defender | 26 | 71.8 | 9.8 | 0.0 | 81.5 |
+| Dimitar Mitrovski | Varaždin | Attacker | 27 | 69.0 | 10.3 | 1.0 | 80.3 |
+| Moris Valincic | Istra 1961 | Defender | 23 | 68.2 | 9.4 | 0.5 | 78.2 |
+| Luka Stojkovic | Dinamo Zagreb | Midfielder | 22 | 73.0 | 4.8 | 0.0 | 77.8 |
+| Arijan Ademi | Dinamo Zagreb | Midfielder | 35 | 72.5 | 4.5 | 0.0 | 77.0 |
 
 **Important: this table can still include big-club players.** `underrated_players` only requires outperforming your *own* teammates, regardless of how strong the squad around you is - so a Dinamo Zagreb or Hajduk Split player who clearly outshines their (already strong) teammates can legitimately appear here (note several do, below). It is **not** a small-club-only list - for that, see the two stricter views below.
 
@@ -330,14 +330,14 @@ Requires *both* signals at once: outperforms their own team (`standout_bonus > 0
 
 | Rank | Player | Team | Position | Age | Overall | Standout | Weak-Team | Underrated |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| 1 | Iker Pozo | Gorica | Midfielder | 25 | 72.2 | 11.8 | 0.9 | 85.0 |
-| 2 | Stjepan Radeljic | Rijeka | Defender | 28 | 68.3 | 9.7 | 0.8 | 78.8 |
-| 3 | Luka Jelenic | Osijek | Defender | 26 | 65.9 | 9.3 | 1.6 | 76.9 |
-| 4 | Jakov Filipovic | Gorica | Defender | 33 | 64.2 | 7.8 | 0.9 | 73.0 |
-| 5 | Ante Orec | Rijeka | Defender | 24 | 63.5 | 7.3 | 0.8 | 71.7 |
-| 6 | Marcel Heister | Istra 1961 | Defender | 33 | 62.1 | 6.7 | 0.9 | 69.6 |
-| 7 | Kerim Çalhanoğlu | Vukovar | Defender | 23 | 58.4 | 7.6 | 3.6 | 69.6 |
-| 8 | Emil Frederiksen | Istra 1961 | Attacker | 25 | 62.0 | 6.6 | 0.9 | 69.5 |
+| 1 | Jurica Prsir | Gorica | Midfielder | 26 | 72.8 | 14.1 | 2.8 | 89.7 |
+| 2 | Dimitar Mitrovski | Varaždin | Attacker | 27 | 69.0 | 10.3 | 1.0 | 80.3 |
+| 3 | Moris Valincic | Istra 1961 | Defender | 23 | 68.2 | 9.4 | 0.5 | 78.2 |
+| 4 | Ivan Laća | Šibenik | Attacker | 23 | 63.8 | 9.2 | 2.5 | 75.5 |
+| 5 | Filip Uremovic | Hajduk Split | Defender | 29 | 66.1 | 8.2 | 0.4 | 74.7 |
+| 6 | Vinko Rozic | Istra 1961 | Attacker | 22 | 64.7 | 7.7 | 0.5 | 72.9 |
+| 7 | Šime Gržan | Šibenik | Attacker | 32 | 61.5 | 8.1 | 2.5 | 72.0 |
+| 8 | Niko Sigur | Hajduk Split | Midfielder | 22 | 64.0 | 7.2 | 0.4 | 71.6 |
 
 ### Small-Club Standouts
 
@@ -346,14 +346,14 @@ Requires only the team-context signal (`weak_team_bonus > 0`), sorted by plain `
 
 | Rank | Player | Team | Position | Age | Overall | Weak-Team Bonus |
 |:---|:---|:---|:---|:---|:---|:---|
-| 1 | Iker Pozo | Gorica | Midfielder | 25 | 72.2 | 0.9 |
-| 2 | Stjepan Radeljic | Rijeka | Defender | 28 | 68.3 | 0.8 |
-| 3 | Luka Jelenic | Osijek | Defender | 26 | 65.9 | 1.6 |
-| 4 | Jakov Filipovic | Gorica | Defender | 33 | 64.2 | 0.9 |
-| 5 | Ante Orec | Rijeka | Defender | 24 | 63.5 | 0.8 |
-| 6 | Marcel Heister | Istra 1961 | Defender | 33 | 62.1 | 0.9 |
-| 7 | Tiago Dantas | Rijeka | Midfielder | 25 | 62.0 | 0.8 |
-| 8 | Emil Frederiksen | Istra 1961 | Attacker | 25 | 62.0 | 0.9 |
+| 1 | Jurica Prsir | Gorica | Midfielder | 26 | 72.8 | 2.8 |
+| 2 | Dimitar Mitrovski | Varaždin | Attacker | 27 | 69.0 | 1.0 |
+| 3 | Moris Valincic | Istra 1961 | Defender | 23 | 68.2 | 0.5 |
+| 4 | Filip Uremovic | Hajduk Split | Defender | 29 | 66.1 | 0.4 |
+| 5 | Vinko Rozic | Istra 1961 | Attacker | 22 | 64.7 | 0.5 |
+| 6 | Niko Sigur | Hajduk Split | Midfielder | 22 | 64.0 | 0.4 |
+| 7 | Ivan Laća | Šibenik | Attacker | 23 | 63.8 | 2.5 |
+| 8 | Filip Krovinovic | Hajduk Split | Midfielder | 30 | 63.4 | 0.4 |
 
 None of these three views are a market-value or 'true team strength' model - they're reproducible statistical proxies for visibility, not scouting verdicts (see Section 24).
 
@@ -362,60 +362,60 @@ None of these three views are a market-value or 'true team strength' model - the
 Stage B3 added optional filters to the similarity search - applied to *candidates* only, after cosine similarity is computed against the full eligible pool: `same_position_only` (exact position match), `same_team_exclude` (drop the query player's own club), `min_minutes` (a stricter reliability floor), and `max_age` (e.g. for 'similar young players'). The examples below show a mix of filtered and unfiltered searches.
 
 
-**Ismaël Bennacer - role: `midfielder`** - filters: `same_position_only=True`
+**Luka Stojkovic - role: `midfielder`** - filters: `same_position_only=True`
 
 | Rank | Player | Team | Position | Similarity |
 |:---|:---|:---|:---|:---|
-| 1 | David Mejía | Vukovar | Midfielder | 0.87 |
-| 2 | Iker Pozo | Gorica | Midfielder | 0.84 |
-| 3 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 0.82 |
-| 4 | Marko Soldo | Dinamo Zagreb | Midfielder | 0.75 |
-| 5 | Domagoj Antolic | Lokomotiva Zagreb | Midfielder | 0.73 |
-| 6 | Tomislav Duvnjak | Varaždin | Midfielder | 0.73 |
-| 7 | Adrion Pajaziti | Hajduk Split | Midfielder | 0.72 |
-| 8 | Leon Bošnjak | Slaven Koprivnica | Midfielder | 0.68 |
-| 9 | Ljuban Crepulja | Slaven Koprivnica | Midfielder | 0.65 |
-| 10 | Josip Misic | Dinamo Zagreb | Midfielder | 0.61 |
+| 1 | Martin Baturina | Dinamo Zagreb | Midfielder | 0.96 |
+| 2 | Amer Gojak | Rijeka | Midfielder | 0.89 |
+| 3 | Marko Rog | Dinamo Zagreb | Midfielder | 0.89 |
+| 4 | Lukas Kacavenda | Dinamo Zagreb | Midfielder | 0.88 |
+| 5 | Petar Pusic | Osijek | Midfielder | 0.79 |
+| 6 | Ivan Ćalušić | Istra 1961 | Midfielder | 0.78 |
+| 7 | Toni Fruk | Rijeka | Midfielder | 0.77 |
+| 8 | Luka Mamic | Varaždin | Midfielder | 0.75 |
+| 9 | Mihail Caimacov | Slaven Koprivnica | Midfielder | 0.72 |
+| 10 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 0.71 |
 
-![Players similar to Ismaël Bennacer](figures_2025_2026/player_similarity_midfielder_example.png)
+![Players similar to Luka Stojkovic](figures_2024_2025/player_similarity_midfielder_example.png)
 
 *The chart shows cosine similarity (0-1) for each match - see section 19 for what that number means.*
 
-**Sergi Domínguez - role: `passer_defender`**
+**Stephane Keller - role: `passer_defender`**
 
 | Rank | Player | Team | Position | Similarity |
 |:---|:---|:---|:---|:---|
-| 1 | Niko Galesic | Dinamo Zagreb | Defender | 0.97 |
-| 2 | Stjepan Radeljic | Rijeka | Defender | 0.96 |
-| 3 | Tino Jukic | Lokomotiva Zagreb | Defender | 0.95 |
-| 4 | Ante Majstorovic | Rijeka | Defender | 0.92 |
-| 5 | Hrvoje Babec | Osijek | Midfielder | 0.91 |
-| 6 | Hugo Guillamón | Hajduk Split | Midfielder | 0.91 |
-| 7 | Dominik Kovacic | Slaven Koprivnica | Defender | 0.90 |
-| 8 | Ville Koski | Istra 1961 | Defender | 0.89 |
-| 9 | Dario Maresic | Istra 1961 | Defender | 0.88 |
-| 10 | Ivan Cvijanovic | Osijek | Defender | 0.87 |
+| 1 | Leonardo Sigali | Lokomotiva Zagreb | Defender | 0.93 |
+| 2 | Luka Skaricic | Varaždin | Defender | 0.93 |
+| 3 | Tomislav Duvnjak | Varaždin | Midfielder | 0.92 |
+| 4 | Filip Uremovic | Hajduk Split | Defender | 0.91 |
+| 5 | Ivan Nekic | Varaždin | Defender | 0.90 |
+| 6 | Novak Tepsic | Varaždin | Defender | 0.89 |
+| 7 | Emin Hasic | Osijek | Defender | 0.87 |
+| 8 | Tomislav Bozic | Slaven Koprivnica | Defender | 0.86 |
+| 9 | Hrvoje Babec | Osijek | Midfielder | 0.85 |
+| 10 | Luka Jelenic | Osijek | Defender | 0.83 |
 
-![Players similar to Sergi Domínguez](figures_2025_2026/player_similarity_defender_example.png)
+![Players similar to Stephane Keller](figures_2024_2025/player_similarity_defender_example.png)
 
 *The chart shows cosine similarity (0-1) for each match - see section 19 for what that number means.*
 
-**Dion Beljo - role: `attacker`**
+**Ante Suto - role: `attacker`**
 
 | Rank | Player | Team | Position | Similarity |
 |:---|:---|:---|:---|:---|
-| 1 | Sandro Kulenovic | Dinamo Zagreb | Attacker | 1.00 |
-| 2 | Michele Sego | Hajduk Split | Attacker | 0.99 |
-| 3 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 0.99 |
-| 4 | Smail Prevljak | Istra 1961 | Attacker | 0.98 |
-| 5 | Monsef Bakrar | Dinamo Zagreb | Attacker | 0.98 |
-| 6 | Jakov Puljic | Vukovar | Attacker | 0.98 |
-| 7 | Marko Soldo | Dinamo Zagreb | Midfielder | 0.98 |
-| 8 | Salim Fago Lawal | Istra 1961 | Attacker | 0.98 |
-| 9 | Ivan Mamut | Varaždin | Attacker | 0.98 |
-| 10 | Toni Fruk | Rijeka | Midfielder | 0.97 |
+| 1 | Marko Livaja | Hajduk Split | Attacker | 0.99 |
+| 2 | Martin Slogar | Gorica | Attacker | 0.99 |
+| 3 | Arnel Jakupovic | Osijek | Attacker | 0.99 |
+| 4 | Arijan Ademi | Dinamo Zagreb | Midfielder | 0.98 |
+| 5 | Vinko Rozic | Istra 1961 | Attacker | 0.98 |
+| 6 | Sandro Kulenovic | Dinamo Zagreb | Attacker | 0.97 |
+| 7 | Nathanaël Mbuku | Dinamo Zagreb | Attacker | 0.97 |
+| 8 | Lovre Kulusic | Šibenik | Midfielder | 0.97 |
+| 9 | Robert Mudrazija | Lokomotiva Zagreb | Midfielder | 0.96 |
+| 10 | Dimitar Mitrovski | Varaždin | Attacker | 0.96 |
 
-![Players similar to Dion Beljo](figures_2025_2026/player_similarity_attacker_example.png)
+![Players similar to Ante Suto](figures_2024_2025/player_similarity_attacker_example.png)
 
 *The chart shows cosine similarity (0-1) for each match - see section 19 for what that number means.*
 
@@ -423,20 +423,20 @@ Stage B3 added optional filters to the similarity search - applied to *candidate
 
 | Rank | Player | Team | Position | Similarity |
 |:---|:---|:---|:---|:---|
-| 1 | Nail Omerovic | Osijek | Attacker | 0.80 |
-| 2 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 0.77 |
-| 3 | Roko Brajkovic | Hajduk Split | Attacker | 0.72 |
-| 4 | Gabriel Vidovic | Dinamo Zagreb | Attacker | 0.72 |
-| 5 | Iker Almena | Hajduk Split | Attacker | 0.70 |
-| 6 | Fabijan Krivak | Lokomotiva Zagreb | Midfielder | 0.65 |
-| 7 | Salim Fago Lawal | Istra 1961 | Attacker | 0.63 |
-| 8 | Mateo Lisica | Dinamo Zagreb | Attacker | 0.57 |
-| 9 | Rokas Pukstas | Hajduk Split | Midfielder | 0.49 |
-| 10 | Samuele Vignato | Rijeka | Midfielder | 0.47 |
+| 1 | Lukas Kacavenda | Dinamo Zagreb | Midfielder | 0.66 |
+| 2 | Martin Baturina | Dinamo Zagreb | Midfielder | 0.60 |
+| 3 | Luka Stojkovic | Dinamo Zagreb | Midfielder | 0.55 |
+| 4 | Nail Omerovic | Osijek | Attacker | 0.51 |
+| 5 | Luka Kapulica | Gorica | Midfielder | 0.50 |
+| 6 | Juan Córdoba | Dinamo Zagreb | Attacker | 0.48 |
+| 7 | Marko Soldo | Osijek | Midfielder | 0.46 |
+| 8 | Luka Vrbancic | Lokomotiva Zagreb | Midfielder | 0.45 |
+| 9 | Vinko Rozic | Istra 1961 | Attacker | 0.43 |
+| 10 | Stipe Biuk | Hajduk Split | Attacker | 0.41 |
 
 *The chart shows cosine similarity (0-1) for each match - see section 19 for what that number means.*
 
-![Profile comparison: Ismaël Bennacer, Dion Beljo, Sergi Domínguez](figures_2025_2026/role_radar_examples.png)
+![Profile comparison: Luka Stojkovic, Ante Suto, Stephane Keller](figures_2024_2025/role_radar_examples.png)
 
 The radar chart puts 3 query players (the same midfielder/attacker/defender examples used above) on the same five axes (attacking/creative/defensive/dribbling/passing scores). It makes each player's *shape* obvious at a glance - a specialist spikes hard on one or two axes and barely registers elsewhere, while an all-rounder stays more balanced across several dimensions - which is exactly why role-based similarity search (Section 19) matters more than a single 'overall' comparison.
 
@@ -469,65 +469,65 @@ By default, `same_position_only=True` and `same_team_exclude=True` (a replacemen
 
 **It says nothing about video-scouted technique, tactical fit, injury history, character, or transfer feasibility** (fee, release clause, wages, contract length) - treat it as a reproducible first-pass shortlist for a human scout to start from, not a conclusion.
 
-**Replacement targets for Dion Beljo** (role: `attacker`)
+**Replacement targets for Ante Suto** (role: `attacker`)
 
 | Rank | Player | Team | Position | Age | Similarity | Potential | Underrated | Younger Bonus | Replacement Score |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| 1 | Josip Mitrovic | Slaven Koprivnica | Attacker | 26 | 0.94 | 72.6 | 73.5 | 0.0 | 82.9 |
-| 2 | Michele Sego | Hajduk Split | Attacker | 25 | 0.99 | 70.2 | 68.2 | 0.0 | 82.5 |
-| 3 | Nail Omerovic | Osijek | Attacker | 23 | 0.84 | 67.4 | 68.0 | 5.0 | 82.0 |
-| 4 | Iuri Tavares | Varaždin | Attacker | 25 | 0.92 | 68.0 | 67.7 | 0.0 | 78.9 |
-| 5 | Ante Rebić | Hajduk Split | Attacker | 32 | 0.95 | 66.3 | 63.1 | 0.0 | 78.2 |
-| 6 | Emil Frederiksen | Istra 1961 | Attacker | 25 | 0.87 | 68.4 | 69.5 | 0.0 | 77.9 |
-| 7 | Roko Brajkovic | Hajduk Split | Attacker | 21 | 0.84 | 68.0 | 62.5 | 5.0 | 76.8 |
-| 8 | Salim Fago Lawal | Istra 1961 | Attacker | 23 | 0.98 | 54.9 | 53.3 | 5.0 | 76.8 |
-| 9 | Samuel Akere | Osijek | Attacker | 22 | 0.87 | 65.1 | 68.9 | 5.0 | 76.6 |
-| 10 | Jakov Puljic | Vukovar | Attacker | 32 | 0.98 | 55.2 | 53.4 | 0.0 | 76.4 |
+| 1 | Nathanaël Mbuku | Dinamo Zagreb | Attacker | 24 | 0.97 | 84.4 | 94.6 | 5.0 | 88.5 |
+| 2 | Dimitar Mitrovski | Varaždin | Attacker | 27 | 0.96 | 74.7 | 80.3 | 0.0 | 85.2 |
+| 3 | Marko Pjaca | Dinamo Zagreb | Attacker | 31 | 0.91 | 78.1 | 75.9 | 0.0 | 84.1 |
+| 4 | Vinko Rozic | Istra 1961 | Attacker | 22 | 0.98 | 68.9 | 72.9 | 5.0 | 83.3 |
+| 5 | Marko Livaja | Hajduk Split | Attacker | 32 | 0.99 | 64.6 | 60.4 | 0.0 | 81.2 |
+| 6 | Nail Omerovic | Osijek | Attacker | 23 | 0.86 | 64.0 | 60.8 | 5.0 | 79.6 |
+| 7 | Marco Pašalić | Rijeka | Attacker | 25 | 0.84 | 68.9 | 72.4 | 5.0 | 79.4 |
+| 8 | Sandro Kulenovic | Dinamo Zagreb | Attacker | 26 | 0.97 | 66.0 | 60.7 | 0.0 | 78.7 |
+| 9 | Ivan Laća | Šibenik | Attacker | 23 | 0.73 | 68.0 | 75.5 | 5.0 | 76.7 |
+| 10 | Michele Sego | Varaždin | Attacker | 25 | 0.77 | 65.5 | 69.3 | 5.0 | 75.4 |
 
-**Replacement targets for Ismaël Bennacer** (role: `midfielder`)
-
-| Rank | Player | Team | Position | Age | Similarity | Potential | Underrated | Younger Bonus | Replacement Score |
-|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| 1 | Iker Pozo | Gorica | Midfielder | 25 | 0.84 | 79.8 | 85.0 | 5.0 | 89.0 |
-| 2 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 0.82 | 81.4 | 80.1 | 5.0 | 84.3 |
-| 3 | Ljuban Crepulja | Slaven Koprivnica | Midfielder | 32 | 0.65 | 80.0 | 86.4 | 0.0 | 74.0 |
-| 4 | David Mejía | Vukovar | Midfielder | 23 | 0.87 | 55.4 | 62.8 | 5.0 | 70.7 |
-| 5 | Niko Sigur | Hajduk Split | Midfielder | 22 | 0.54 | 72.9 | 68.7 | 5.0 | 70.3 |
-| 6 | Tomislav Duvnjak | Varaždin | Midfielder | 23 | 0.73 | 56.8 | 49.6 | 5.0 | 70.3 |
-| 7 | Adrion Pajaziti | Hajduk Split | Midfielder | 23 | 0.72 | 60.2 | 54.4 | 5.0 | 69.5 |
-| 8 | Robin González | Vukovar | Midfielder | 27 | 0.56 | 61.9 | 63.3 | 5.0 | 68.6 |
-| 9 | Toni Fruk | Rijeka | Midfielder | 25 | 0.55 | 66.8 | 67.5 | 5.0 | 68.2 |
-| 10 | Jurica Prsir | Gorica | Midfielder | 26 | 0.46 | 61.5 | 58.1 | 5.0 | 62.6 |
-
-**Replacement targets for Sergi Domínguez** (role: `defender`)
+**Replacement targets for Luka Stojkovic** (role: `midfielder`)
 
 | Rank | Player | Team | Position | Age | Similarity | Potential | Underrated | Younger Bonus | Replacement Score |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| 1 | Jakov Filipovic | Gorica | Defender | 33 | 0.86 | 72.1 | 73.0 | 0.0 | 80.5 |
-| 2 | Luka Jelenic | Osijek | Defender | 26 | 0.84 | 72.6 | 76.9 | 0.0 | 79.6 |
-| 3 | Denis Kolinger | Lokomotiva Zagreb | Defender | 32 | 0.93 | 59.6 | 56.8 | 0.0 | 76.0 |
-| 4 | Ante Majstorovic | Rijeka | Defender | 32 | 0.82 | 64.4 | 61.9 | 0.0 | 74.1 |
-| 5 | Stjepan Radeljic | Rijeka | Defender | 28 | 0.71 | 74.1 | 78.8 | 0.0 | 73.9 |
-| 6 | Tino Jukic | Lokomotiva Zagreb | Defender | 24 | 0.85 | 61.5 | 60.8 | 0.0 | 73.1 |
-| 7 | Tomislav Bozic | Slaven Koprivnica | Defender | 38 | 0.86 | 62.2 | 58.1 | 0.0 | 72.9 |
-| 8 | Branimir Mlacic | Hajduk Split | Defender | 19 | 0.83 | 64.2 | 52.7 | 5.0 | 71.9 |
-| 9 | Luka Skaricic | Varaždin | Defender | 24 | 0.70 | 71.7 | 74.8 | 0.0 | 70.7 |
-| 10 | Zvonimir Sarlija | Hajduk Split | Defender | 29 | 0.75 | 66.6 | 62.3 | 0.0 | 70.3 |
+| 1 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 0.71 | 71.8 | 67.0 | 5.0 | 73.6 |
+| 2 | Ivan Rakitić | Hajduk Split | Midfielder | 38 | 0.63 | 68.6 | 66.5 | 0.0 | 69.1 |
+| 3 | Marko Soldo | Osijek | Midfielder | 22 | 0.63 | 71.1 | 68.1 | 0.0 | 68.6 |
+| 4 | Jurica Prsir | Gorica | Midfielder | 26 | 0.55 | 76.7 | 89.7 | 0.0 | 67.6 |
+| 5 | Toni Fruk | Rijeka | Midfielder | 25 | 0.77 | 55.9 | 48.9 | 0.0 | 66.5 |
+| 6 | Luka Mamic | Varaždin | Midfielder | 23 | 0.75 | 55.7 | 52.1 | 0.0 | 64.7 |
+| 7 | Petar Pusic | Osijek | Midfielder | 27 | 0.79 | 59.0 | 57.0 | 0.0 | 64.4 |
+| 8 | Stjepan Loncar | Istra 1961 | Midfielder | 29 | 0.71 | 60.8 | 63.9 | 0.0 | 61.3 |
+| 9 | Antonio Mauric | Istra 1961 | Midfielder | 22 | 0.54 | 63.1 | 59.7 | 0.0 | 59.4 |
+| 10 | Amer Gojak | Rijeka | Midfielder | 29 | 0.89 | 40.8 | 38.4 | 0.0 | 57.8 |
 
-**Replacement targets for Gabriel Vidovic** (role: `attacker`)
+**Replacement targets for Stephane Keller** (role: `defender`)
 
 | Rank | Player | Team | Position | Age | Similarity | Potential | Underrated | Younger Bonus | Replacement Score |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| 1 | Nail Omerovic | Osijek | Attacker | 23 | 0.85 | 67.4 | 68.0 | 0.0 | 77.9 |
-| 2 | Roko Brajkovic | Hajduk Split | Attacker | 21 | 0.85 | 68.0 | 62.5 | 5.0 | 77.8 |
-| 3 | Daniel Adu-Adjei | Rijeka | Attacker | 21 | 0.92 | 57.8 | 50.4 | 5.0 | 76.1 |
-| 4 | Salim Fago Lawal | Istra 1961 | Attacker | 23 | 0.99 | 54.9 | 53.3 | 0.0 | 73.1 |
-| 5 | Samuel Akere | Osijek | Attacker | 22 | 0.87 | 65.1 | 68.9 | 0.0 | 72.3 |
-| 6 | Iker Almena | Hajduk Split | Attacker | 22 | 0.78 | 68.0 | 63.9 | 0.0 | 71.9 |
-| 7 | Mirko Susak | Lokomotiva Zagreb | Attacker | 22 | 0.96 | 59.5 | 61.4 | 0.0 | 71.6 |
-| 8 | Aleks Stojakovic | Lokomotiva Zagreb | Attacker | 22 | 0.91 | 51.5 | 44.1 | 0.0 | 70.4 |
-| 9 | Ibrahim Sabra  | Lokomotiva Zagreb | Attacker | 20 | 0.81 | 42.0 | 36.4 | 5.0 | 59.6 |
-| 10 | Filip Cuic | Gorica | Attacker | 23 | 0.75 | 42.6 | 38.8 | 0.0 | 59.4 |
+| 1 | Emin Hasic | Osijek | Defender | 23 | 0.71 | 70.1 | 74.1 | 5.0 | 73.4 |
+| 2 | Filip Uremovic | Hajduk Split | Defender | 29 | 0.58 | 73.4 | 74.7 | 0.0 | 69.1 |
+| 3 | Stefan Ristovski | Dinamo Zagreb | Defender | 34 | 0.78 | 63.1 | 57.9 | 0.0 | 67.9 |
+| 4 | Ronaël Pierre-Gabriel | Dinamo Zagreb | Defender | 28 | 0.68 | 69.2 | 63.0 | 0.0 | 67.6 |
+| 5 | Ismaël Diallo | Hajduk Split | Defender | 29 | 0.80 | 55.2 | 51.0 | 0.0 | 64.9 |
+| 6 | Luka Jelenic | Osijek | Defender | 26 | 0.36 | 78.5 | 81.5 | 0.0 | 62.5 |
+| 7 | Stefan Peric | Šibenik | Defender | 29 | 0.59 | 57.4 | 57.7 | 0.0 | 59.1 |
+| 8 | Denis Kolinger | Lokomotiva Zagreb | Defender | 32 | 0.54 | 60.2 | 59.1 | 0.0 | 58.5 |
+| 9 | Lamine Ba | Varaždin | Defender | 28 | 0.48 | 62.0 | 59.6 | 0.0 | 58.1 |
+| 10 | Tomislav Bozic | Slaven Koprivnica | Defender | 38 | 0.32 | 69.5 | 67.4 | 0.0 | 56.8 |
+
+**Replacement targets for Luka Stojkovic** (role: `midfielder`)
+
+| Rank | Player | Team | Position | Age | Similarity | Potential | Underrated | Younger Bonus | Replacement Score |
+|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
+| 1 | Adriano Jagusic | Slaven Koprivnica | Midfielder | 20 | 0.71 | 71.8 | 67.0 | 5.0 | 73.3 |
+| 2 | Marko Soldo | Osijek | Midfielder | 22 | 0.63 | 71.1 | 68.1 | 0.0 | 69.3 |
+| 3 | Luka Mamic | Varaždin | Midfielder | 23 | 0.75 | 55.7 | 52.1 | 0.0 | 65.3 |
+| 4 | Antonio Mauric | Istra 1961 | Midfielder | 22 | 0.54 | 63.1 | 59.7 | 0.0 | 60.1 |
+| 5 | Beyatt Lekoueiry | Istra 1961 | Midfielder | 21 | 0.66 | 48.3 | 42.7 | 5.0 | 57.8 |
+| 6 | Art Smakaj | Lokomotiva Zagreb | Midfielder | 23 | 0.42 | 55.3 | 50.1 | 0.0 | 53.5 |
+| 7 | Luka Vrbancic | Lokomotiva Zagreb | Midfielder | 21 | 0.29 | 58.7 | 52.9 | 5.0 | 51.4 |
+| 8 | Rokas Pukstas | Hajduk Split | Midfielder | 21 | 0.32 | 51.8 | 44.5 | 5.0 | 46.0 |
+| 9 | Simun Mikolcic | Osijek | Midfielder | 22 | 0.32 | 58.8 | 58.0 | 0.0 | 42.4 |
+| 10 | Niko Sigur | Hajduk Split | Midfielder | 22 | 0.01 | 70.5 | 71.6 | 0.0 | 42.0 |
 
 ## 21. Player Cluster Profiles
 
@@ -535,36 +535,36 @@ By default, `same_position_only=True` and `same_team_exclude=True` (a replacemen
 
 Goalkeepers are clustered separately from outfield players (their near-zero outfield stats would otherwise just form one arbitrary 'goalkeeper' cluster): 8 clusters for outfield players, 2 for goalkeepers. Each cluster is named by comparing its own average stats against the population average (a z-score per feature), then matching that profile against a set of predefined archetype signatures - if no archetype clears a confidence bar, the cluster keeps a neutral `balanced profile` label instead of a forced one. **Cluster names describe playing style, not literal position** - clustering never looks at the `position` column, so an archetype like 'ball-playing defenders' only keeps that name if the cluster is actually made up mostly of defenders; otherwise it falls back to a neutral statistical name (e.g. 'defensive distributors') instead of a forced position claim.
 
-**Full per-cluster profiles** (player count, average age/minutes, a plain-English playing-style description, and top players) are in [`player_cluster_profiles_2025_2026.md`](player_cluster_profiles_2025_2026.md) - summary below:
+**Full per-cluster profiles** (player count, average age/minutes, a plain-English playing-style description, and top players) are in [`player_cluster_profiles_2024_2025.md`](player_cluster_profiles_2024_2025.md) - summary below:
 
 | Cluster | Name | Players | Avg Age | Top Player (by quality_score) |
 |:---|:---|:---|:---|:---|
-| 0 | dribbling creators | 21 | 25.6 | Gabriel Vidovic (Dinamo Zagreb) |
-| 1 | progressive distributors | 17 | 28.6 | Ljuban Crepulja (Slaven Koprivnica) |
-| 2 | progressive distributors (variant 2) | 24 | 26.7 | Sergi Domínguez (Dinamo Zagreb) |
-| 3 | balanced profile | 34 | 24.3 | Iuri Tavares (Varaždin) |
-| 4 | balanced profile | 29 | 26.8 | Ante Orec (Rijeka) |
-| 5 | high-volume finishers | 20 | 26.3 | Michele Sego (Hajduk Split) |
-| 6 | ball-playing defenders | 30 | 24.9 | Niko Galesic (Dinamo Zagreb) |
-| 7 | defensive distributors | 26 | 23.9 | Marko Soldo (Dinamo Zagreb) |
-| 8 | goalkeeper distributors | 7 | 28.7 | Dominik Livakovic (Dinamo Zagreb) |
-| 9 | balanced profile | 10 | 28.0 | Oliver Zelenika (Varaždin) |
+| 0 | balanced profile | 33 | 25.1 | Arijan Ademi (Dinamo Zagreb) |
+| 1 | ball-playing defenders | 27 | 28.7 | Luka Jelenic (Osijek) |
+| 2 | balanced profile | 16 | 28.6 | Jurica Prsir (Gorica) |
+| 3 | high-volume finishers | 23 | 26.5 | Nathanaël Mbuku (Dinamo Zagreb) |
+| 4 | high-volume finishers (variant 2) | 23 | 26.3 | Sandro Kulenovic (Dinamo Zagreb) |
+| 5 | balanced profile | 40 | 27.9 | Niko Sigur (Hajduk Split) |
+| 6 | progressive distributors | 25 | 28.0 | Raúl Torrente (Dinamo Zagreb) |
+| 7 | safe passers | 1 | 27.0 | Jon Mersinaj (Lokomotiva Zagreb) |
+| 8 | balanced profile | 8 | 30.5 | Ivan Sušak (Slaven Koprivnica) |
+| 9 | goalkeeper distributors | 6 | 30.5 | Oliver Zelenika (Varaždin) |
 
 ## 22. Additional Charts
 
-![Age vs overall score](figures_2025_2026/age_vs_overall_score.png)
+![Age vs overall score](figures_2024_2025/age_vs_overall_score.png)
 
 Every eligible **outfield** player's age against their `overall_score` (goalkeepers excluded, per Section 6), with U23 players highlighted and the top 5 labeled. Useful for spotting whether a young player's output is part of a broader pattern of emerging talent or a standalone outlier.
 
-![Minutes vs overall score](figures_2025_2026/minutes_vs_overall_score.png)
+![Minutes vs overall score](figures_2024_2025/minutes_vs_overall_score.png)
 
 `overall_score` against minutes played, with the 450-minute eligibility floor marked. All points clear that floor by definition (lower-minute players are excluded from scoring entirely, per Section 4), but the spread still shows that scores near the floor are based on a much smaller sample than scores from players who played most of the season - worth weighing when comparing two similar scores.
 
-![Overall score distribution by position](figures_2025_2026/position_score_distribution.png)
+![Overall score distribution by position](figures_2024_2025/position_score_distribution.png)
 
 This is the chart that explains *why* position-aware scoring (Section 6) was worth adding, and why goalkeepers were removed from outfield rankings entirely: before Stage 1, `attacking_score` / `creative_score` / `defensive_score` were percentile ranks against the *whole* player pool, so a position with a naturally different stat profile would cluster at one extreme regardless of who the best player at that position actually was. Ranking within each position group fixed that for outfielders - but goalkeepers still show an oddly narrow, high-floor `overall_score` spread here even with position-aware scoring, because the underlying stats (goals, tackles, passing volume) barely apply to their job. That's the concrete evidence behind excluding them into their own `goalkeeper_score` model instead.
 
-![Team talent map](figures_2025_2026/team_talent_map.png)
+![Team talent map](figures_2024_2025/team_talent_map.png)
 
 Average `overall_score` among eligible **outfield** players (450+ minutes, goalkeepers excluded) per club, with the eligible squad size shown in parentheses. This is a rough proxy for squad strength/depth, not a form table - it says nothing about results, only about individual statistical output. It's also the same data `team_average_score` (Section 17) is built from, per club.
 

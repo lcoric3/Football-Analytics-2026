@@ -1,0 +1,203 @@
+cluster_id,cluster_name,player_id,player_name,team_name,position,age,minutes,quality_score
+0,balanced profile,72614,Arijan Ademi,Dinamo Zagreb,Midfielder,35,837.0,72.47362441162149
+0,balanced profile,75098,Dario Spikic,Dinamo Zagreb,Attacker,27,624.0,67.71962196219623
+0,balanced profile,37287242,Ivan Laća,Šibenik,Attacker,23,1545.0,63.81053105310532
+0,balanced profile,37324970,Marko Soldo,Osijek,Midfielder,22,2357.0,62.8014932640805
+0,balanced profile,37704799,Adriano Jagusic,Slaven Koprivnica,Midfielder,20,1526.0,61.75864307742249
+0,balanced profile,37583451,Gabriel Rukavina,Rijeka,Attacker,22,1100.0,58.93204320432043
+0,balanced profile,28912771,Adrion Pajaziti,Gorica,Midfielder,23,1569.0,58.7355948709625
+0,balanced profile,37528365,Nail Omerovic,Osijek,Attacker,23,2264.0,57.936993699369935
+0,balanced profile,37540937,Mateo Lisica,Istra 1961,Attacker,22,2702.0,56.99234923492349
+0,balanced profile,37356253,Dušan Vuković,Lokomotiva Zagreb,Attacker,23,1259.0,55.187218721872185
+0,balanced profile,160244,Komnen Andric,Rijeka,Attacker,31,1234.0,54.87038703870387
+0,balanced profile,69675,Luka Menalo,Rijeka,Attacker,29,727.0,54.16741674167417
+0,balanced profile,9302755,Ivan Dolcek,Slaven Koprivnica,Attacker,26,1701.0,52.66516651665167
+0,balanced profile,37581526,Domagoj Bukvic,Osijek,Attacker,22,1528.0,52.65166516651665
+0,balanced profile,37582792,Luka Mamic,Varaždin,Midfielder,23,2003.0,50.15094952118163
+0,balanced profile,37600592,Luka Vrbancic,Lokomotiva Zagreb,Midfielder,21,1668.0,50.053968511605255
+0,balanced profile,24838180,Stipe Biuk,Hajduk Split,Attacker,23,904.0,47.81368136813681
+0,balanced profile,37332624,Giorgi Gagua,Istra 1961,Attacker,24,1524.0,47.18541854185418
+0,balanced profile,26336984,Niko Jankovic,Rijeka,Midfielder,24,2995.0,45.64356435643565
+0,balanced profile,37667026,Igor Lepinjica,Slaven Koprivnica,Attacker,26,1397.0,45.42664266426641
+0,balanced profile,37619959,Luka Kapulica,Gorica,Midfielder,21,891.0,44.622626197045925
+0,balanced profile,37596443,Rokas Pukstas,Hajduk Split,Midfielder,21,1461.0,44.11459178704756
+0,balanced profile,537305,Nazariy Rusyn,Hajduk Split,Attacker,27,692.0,42.9014401440144
+0,balanced profile,7346393,Aleksa Latkovic,Varaždin,Midfielder,25,1392.0,42.52556403181302
+0,balanced profile,15062015,Abdoulie Sanyang,Hajduk Split,Attacker,27,1145.0,39.6903690369037
+0,balanced profile,73159,Ante Erceg,Gorica,Attacker,36,717.0,38.69396939693969
+0,balanced profile,5270357,Marko Vranjkovic,Lokomotiva Zagreb,Defender,27,889.0,38.17931793179317
+0,balanced profile,19624018,Adrian Liber,Slaven Koprivnica,Midfielder,25,1866.0,37.49310176919332
+0,balanced profile,73844,Marko Dabro,Varaždin,Attacker,29,1884.0,36.68316831683168
+0,balanced profile,462000,Merveil Ndockyt,Gorica,Midfielder,27,2423.0,34.5382243142347
+0,balanced profile,455998,Mihail Caimacov,Slaven Koprivnica,Midfielder,27,1491.0,32.69761402369745
+0,balanced profile,21404384,Jurica Poldrugac,Varaždin,Midfielder,28,1067.0,29.521181626359358
+0,balanced profile,37688968,Anton Matkovic,Osijek,Attacker,20,1002.0,24.939693969396934
+1,ball-playing defenders,23707307,Luka Jelenic,Osijek,Defender,26,2532.0,71.75673817381738
+1,ball-playing defenders,73867,Dominik Kovacic,Slaven Koprivnica,Defender,32,2484.0,62.18921892189218
+1,ball-playing defenders,12393223,Mateo Les,Gorica,Defender,26,2360.0,56.72167216721671
+1,ball-playing defenders,3533873,Ivan Nekic,Varaždin,Defender,25,1596.0,55.93784378437844
+1,ball-playing defenders,37545139,Stephane Keller,Istra 1961,Defender,24,694.0,55.605060506050606
+1,ball-playing defenders,133342,Lamine Ba,Varaždin,Defender,28,2590.0,55.15401540154016
+1,ball-playing defenders,73585,Denis Kolinger,Lokomotiva Zagreb,Defender,32,2262.0,54.17354235423542
+1,ball-playing defenders,24817153,Iurie Iovu,Istra 1961,Defender,24,1043.0,51.45145764576458
+1,ball-playing defenders,37356259,Michael Agbekpornu,Slaven Koprivnica,Midfielder,27,1112.0,49.285830222366506
+1,ball-playing defenders,73887,Leonardo Sigali,Lokomotiva Zagreb,Defender,39,1022.0,48.4192794279428
+1,ball-playing defenders,129585,Alessandro Tuia,Osijek,Defender,36,1537.0,48.05211771177117
+1,ball-playing defenders,74068,Josip Elez,Hajduk Split,Defender,32,871.0,47.82315731573157
+1,ball-playing defenders,73972,Ante Majstorovic,Rijeka,Defender,32,2759.0,47.76952695269527
+1,ball-playing defenders,37550997,Moreno Zivkovic,Lokomotiva Zagreb,Defender,22,1212.0,47.28891639163916
+1,ball-playing defenders,13239047,Mario Mladenovski,Varaždin,Defender,25,937.0,47.27585258525853
+1,ball-playing defenders,73558,Slavko Bralic,Gorica,Defender,33,924.0,47.021452145214525
+1,ball-playing defenders,16488582,Ville Koski,Istra 1961,Defender,24,2881.0,46.84268426842685
+1,ball-playing defenders,37533537,Novak Tepsic,Varaždin,Defender,24,1115.0,46.77805280528053
+1,ball-playing defenders,1485781,Zvonimir Sarlija,Hajduk Split,Defender,29,537.0,46.388888888888886
+1,ball-playing defenders,24838179,Luka Skaricic,Varaždin,Defender,24,1134.0,44.904427942794285
+1,ball-playing defenders,85690,Luka Bogdan,Istra 1961,Defender,30,494.0,42.22153465346535
+1,ball-playing defenders,72702,M. Maloča,Gorica,Defender,37,1706.0,41.92931793179318
+1,ball-playing defenders,34398,Roberto Puncec,Šibenik,Defender,34,1772.0,37.49037403740374
+1,ball-playing defenders,24837955,Styopa Mkrtchyan,Osijek,Defender,23,1150.0,36.34282178217822
+1,ball-playing defenders,24993,Matthew Steenvoorden,Gorica,Defender,33,1126.0,35.966034103410344
+1,ball-playing defenders,183400,Lovro Cvek,Šibenik,Midfielder,31,1354.0,34.64534978087973
+1,ball-playing defenders,37656551,Jakov Gurlica,Gorica,Defender,22,598.0,31.492711771177124
+2,balanced profile,21072870,Jurica Prsir,Gorica,Midfielder,26,1511.0,72.81285505599742
+2,balanced profile,37560492,Ivan Cvijanovic,Osijek,Defender,22,888.0,65.38710121012102
+2,balanced profile,73145,Šime Gržan,Šibenik,Attacker,32,2116.0,61.47614761476148
+2,balanced profile,29992,Ivan Rakitić,Hajduk Split,Midfielder,38,3065.0,60.64072390845642
+2,balanced profile,37571660,Simun Mikolcic,Osijek,Midfielder,22,622.0,56.09276091543581
+2,balanced profile,74322,Frane Maglica,Varaždin,Defender,29,2827.0,53.94114411441145
+2,balanced profile,73932,Fran Karacic,Lokomotiva Zagreb,Defender,30,3030.0,52.98679867986799
+2,balanced profile,74533,Josip Majic,Šibenik,Attacker,32,1062.0,48.89108910891089
+2,balanced profile,73278,Marko Pajac,Lokomotiva Zagreb,Defender,33,1084.0,48.6564906490649
+2,balanced profile,4536487,Tiago Dantas,Osijek,Midfielder,25,1996.0,45.61191365038143
+2,balanced profile,37529453,Elvir Durakovic,Šibenik,Defender,26,1315.0,44.67546754675468
+2,balanced profile,74197,Antonio Bosec,Slaven Koprivnica,Defender,28,2380.0,39.652090209020905
+2,balanced profile,67827,Amer Gojak,Rijeka,Midfielder,29,1088.0,38.4166531407239
+2,balanced profile,37530358,Ante Orec,Rijeka,Defender,24,464.0,37.886413641364136
+2,balanced profile,37529443,Enes Alic,Varaždin,Defender,26,713.0,35.3960396039604
+2,balanced profile,73222,D. Štiglec,Gorica,Defender,35,967.0,34.31930693069307
+3,high-volume finishers,22136685,Nathanaël Mbuku,Dinamo Zagreb,Attacker,24,496.0,84.17416741674168
+3,high-volume finishers,37563601,Luka Stojkovic,Dinamo Zagreb,Midfielder,22,1542.0,73.00519396201913
+3,high-volume finishers,37569839,Lukas Kacavenda,Dinamo Zagreb,Midfielder,23,733.0,71.89823080668721
+3,high-volume finishers,73448,Marko Pjaca,Dinamo Zagreb,Attacker,31,2384.0,71.71962196219621
+3,high-volume finishers,1486200,Arbër Hoxha,Dinamo Zagreb,Attacker,27,1254.0,69.64716471647164
+3,high-volume finishers,7745870,Dimitar Mitrovski,Varaždin,Attacker,27,2111.0,68.96939693969397
+3,high-volume finishers,37571435,Ante Suto,Slaven Koprivnica,Attacker,26,518.0,66.28082808280827
+3,high-volume finishers,3862681,Marco Pašalić,Rijeka,Attacker,25,1372.0,65.46804680468047
+3,high-volume finishers,131838,Bruno Petkovic,Dinamo Zagreb,Attacker,31,865.0,64.95409540954094
+3,high-volume finishers,37582788,Vinko Rozic,Istra 1961,Attacker,22,1063.0,64.71737173717372
+3,high-volume finishers,73704,Alen Grgic,Slaven Koprivnica,Attacker,31,2478.0,61.9018901890189
+3,high-volume finishers,3568423,Michele Sego,Varaždin,Attacker,25,1517.0,61.63816381638164
+3,high-volume finishers,37550680,Martin Baturina,Dinamo Zagreb,Midfielder,23,2380.0,60.97224476546014
+3,high-volume finishers,527767,Naïs Djouahra,Rijeka,Attacker,26,1823.0,59.69576957695769
+3,high-volume finishers,37607123,Juan Córdoba,Dinamo Zagreb,Attacker,22,551.0,59.53645364536454
+3,high-volume finishers,338593,Stjepan Loncar,Istra 1961,Midfielder,29,1043.0,58.72747930530758
+3,high-volume finishers,109643,Hernâni,Osijek,Attacker,34,1191.0,58.71962196219621
+3,high-volume finishers,73858,Marko Rog,Dinamo Zagreb,Midfielder,30,616.0,58.11962343775361
+3,high-volume finishers,129013,Marko Livaja,Hajduk Split,Attacker,32,3097.0,56.56885688568857
+3,high-volume finishers,198710,Petar Pusic,Osijek,Midfielder,27,1454.0,55.413082291835735
+3,high-volume finishers,5270359,Silvio Gorican,Lokomotiva Zagreb,Attacker,26,2700.0,49.31233123312332
+3,high-volume finishers,37543226,Toni Fruk,Rijeka,Midfielder,25,2645.0,48.90034085375751
+3,high-volume finishers,37613457,Beyatt Lekoueiry,Istra 1961,Midfielder,21,1036.0,42.24151923389059
+4,high-volume finishers (variant 2),540173,Sandro Kulenovic,Dinamo Zagreb,Attacker,26,1910.0,60.65436543654366
+4,high-volume finishers (variant 2),37604564,Matej Sakota,Slaven Koprivnica,Attacker,21,592.0,54.37083708370836
+4,high-volume finishers (variant 2),54693,Robert Mudrazija,Lokomotiva Zagreb,Midfielder,29,2600.0,53.26894984580424
+4,high-volume finishers (variant 2),37709571,Lovre Kulusic,Šibenik,Midfielder,19,890.0,52.57588053887356
+4,high-volume finishers (variant 2),37719908,Bruno Durdov,Hajduk Split,Attacker,18,979.0,51.63546354635463
+4,high-volume finishers (variant 2),37708547,Mirko Susak,Lokomotiva Zagreb,Attacker,22,452.0,51.27272727272728
+4,high-volume finishers (variant 2),73913,Ilija Nestorovski,Slaven Koprivnica,Attacker,36,1866.0,50.53240324032403
+4,high-volume finishers (variant 2),16817975,Martin Slogar,Gorica,Attacker,25,1054.0,48.51755175517551
+4,high-volume finishers (variant 2),73639,Marko Kolar,Gorica,Attacker,31,1489.0,47.18361836183618
+4,high-volume finishers (variant 2),72857,Duje Cop,Rijeka,Attacker,36,1608.0,46.646264626462646
+4,high-volume finishers (variant 2),1525043,Matej Vuk,Istra 1961,Attacker,26,1010.0,46.25112511251125
+4,high-volume finishers (variant 2),102012,Wilfried Kanga,Dinamo Zagreb,Attacker,28,827.0,45.92979297929793
+4,high-volume finishers (variant 2),31926,Ivan Santini,Šibenik,Attacker,37,2574.0,45.05580558055805
+4,high-volume finishers (variant 2),37538546,Pedro Lima Barros,Osijek,Midfielder,23,834.0,43.66052588865444
+4,high-volume finishers (variant 2),496680,Arnel Jakupovic,Osijek,Attacker,28,2315.0,42.64446444644464
+4,high-volume finishers (variant 2),74885,Karlo Butic,Slaven Koprivnica,Attacker,27,518.0,33.25472547254726
+4,high-volume finishers (variant 2),37600601,Marin Prekodravac,Šibenik,Midfielder,21,1012.0,31.50219120272683
+4,high-volume finishers (variant 2),37697289,Salim Fago Lawal,Istra 1961,Attacker,23,1724.0,31.334383438343835
+4,high-volume finishers (variant 2),74127,Anthony Kalik,Hajduk Split,Midfielder,28,1742.0,29.96672618081481
+4,high-volume finishers (variant 2),37596447,Filip Cuic,Lokomotiva Zagreb,Attacker,23,962.0,29.747074707470748
+4,high-volume finishers (variant 2),31640157,Kristian Fucak,Istra 1961,Attacker,27,498.0,29.52655265526552
+4,high-volume finishers (variant 2),74849,Ivan Bozic,Šibenik,Attacker,29,2058.0,23.392439243924382
+4,high-volume finishers (variant 2),37596446,Mate Antunovic,Hajduk Split,Attacker,22,791.0,21.2988298829883
+5,balanced profile,37694071,Niko Sigur,Hajduk Split,Midfielder,22,1612.0,63.99691608505113
+5,balanced profile,73871,Filip Krovinovic,Hajduk Split,Midfielder,30,2240.0,63.43775361142672
+5,balanced profile,96854,Ronaël Pierre-Gabriel,Dinamo Zagreb,Defender,28,2288.0,63.02255225522551
+5,balanced profile,32405608,Ivan Smolcic,Rijeka,Defender,25,1564.0,61.05335533553355
+5,balanced profile,52889,Josip Radosevic,Istra 1961,Midfielder,32,1230.0,57.05120921928258
+5,balanced profile,56643,Dario Melnjak,Hajduk Split,Defender,33,1596.0,56.2953795379538
+5,balanced profile,10967324,Lindon Selahi,Rijeka,Midfielder,27,1956.0,56.168641454309366
+5,balanced profile,37551107,Leon Belcar,Varaždin,Midfielder,24,1624.0,56.11913650381432
+5,balanced profile,37616075,Antonio Mauric,Istra 1961,Midfielder,22,1870.0,55.90326245739328
+5,balanced profile,21054114,Bartol Franjic,Dinamo Zagreb,Defender,26,1254.0,55.248899889989
+5,balanced profile,32786881,Tomislav Duvnjak,Varaždin,Midfielder,23,1692.0,54.77601038792404
+5,balanced profile,4187891,Toni Kolega,Šibenik,Attacker,27,1460.0,51.902790279027904
+5,balanced profile,46031,Marcel Heister,Istra 1961,Defender,33,2004.0,51.83305830583058
+5,balanced profile,97414,Ismaël Diallo,Hajduk Split,Defender,29,1811.0,50.27640264026402
+5,balanced profile,24838185,Ivan Cubelic,Slaven Koprivnica,Midfielder,23,1546.0,50.1428339555267
+5,balanced profile,75120,Ivan Roca,Šibenik,Midfielder,30,1110.0,49.5495861061516
+5,balanced profile,72813,Domagoj Antolic,Lokomotiva Zagreb,Midfielder,36,480.0,48.47833143970134
+5,balanced profile,37596430,Simun Hrgovic,Hajduk Split,Defender,22,2033.0,48.32508250825082
+5,balanced profile,9938999,Agon Elezi,Gorica,Midfielder,25,1226.0,48.1817075150138
+5,balanced profile,37598711,Art Smakaj,Lokomotiva Zagreb,Midfielder,23,2724.0,48.17237461451063
+5,balanced profile,22897215,Ivan Ćalušić,Istra 1961,Midfielder,26,862.0,46.714413244603136
+5,balanced profile,37660075,Ante Kavelj,Šibenik,Midfielder,20,1501.0,46.40236974517124
+5,balanced profile,72677,Vedran Jugovic,Osijek,Midfielder,36,1766.0,46.24979711085863
+5,balanced profile,73622,Dino Mikanovic,Gorica,Defender,32,2461.0,44.99518701870187
+5,balanced profile,183535,Dejan Petrovic,Rijeka,Midfielder,28,2878.0,44.82226911215712
+5,balanced profile,74274,Mario Marina,Varaždin,Midfielder,36,2277.0,43.99853919818211
+5,balanced profile,540670,Iker Pozo,Šibenik,Midfielder,25,1302.0,42.70816425904885
+5,balanced profile,412433,Bruno Bogojevic,Rijeka,Attacker,28,1087.0,41.11791179117912
+5,balanced profile,37658787,Feta Fetai,Lokomotiva Zagreb,Midfielder,21,2270.0,39.23145593247849
+5,balanced profile,31625999,Josip Gačić,Šibenik,Defender,28,744.0,37.51718921892189
+5,balanced profile,75000,Antonio Borsic,Varaždin,Defender,30,2680.0,37.31573157315732
+5,balanced profile,1872745,Mladen Devetak,Rijeka,Defender,27,2657.0,37.204345434543455
+5,balanced profile,68104,Advan Kadusic,Istra 1961,Defender,28,2052.0,36.27475247524752
+5,balanced profile,73257,Slavko Blagojević,Istra 1961,Midfielder,39,1173.0,36.036357734134064
+5,balanced profile,37356247,Ognjen Bakic,Šibenik,Midfielder,23,2487.0,35.777471189741924
+5,balanced profile,84515,Gregor Sikosek,Gorica,Defender,32,1381.0,34.91061606160616
+5,balanced profile,51829,Marin Leovac,Lokomotiva Zagreb,Defender,37,1503.0,34.551705170517046
+5,balanced profile,74090,Valentino Majstorovic,Gorica,Defender,30,1602.0,33.934268426842685
+5,balanced profile,28932717,Renan Guedes,Osijek,Defender,28,1201.0,29.35849834983499
+5,balanced profile,37656051,Vito Caic,Gorica,Midfielder,21,870.0,24.51468917383541
+6,progressive distributors,37546618,Raúl Torrente,Dinamo Zagreb,Defender,24,1650.0,75.6277502750275
+6,progressive distributors,37544959,Moris Valincic,Istra 1961,Defender,23,2619.0,68.22469746974699
+6,progressive distributors,37512280,Niko Galesic,Rijeka,Defender,25,1338.0,67.11633663366337
+6,progressive distributors,37325018,Emin Hasic,Osijek,Defender,23,1320.0,66.79180418041803
+6,progressive distributors,530693,Hrvoje Babec,Osijek,Midfielder,26,1522.0,66.4729751663691
+6,progressive distributors,75066,Filip Uremovic,Hajduk Split,Defender,29,2780.0,66.06710671067107
+6,progressive distributors,47589,Stjepan Radeljic,Rijeka,Defender,28,1901.0,62.11496149614962
+6,progressive distributors,73090,Tomislav Bozic,Slaven Koprivnica,Defender,38,2814.0,62.03520352035203
+6,progressive distributors,52801,Dario Maresic,Istra 1961,Defender,26,2911.0,61.679042904290434
+6,progressive distributors,34481476,Roko Jurisic,Osijek,Defender,24,2864.0,60.89040154015401
+6,progressive distributors,74182,T. Halilović,Gorica,Midfielder,31,1519.0,60.6037980847265
+6,progressive distributors,2890,Kévin Théophile-Catherine,Dinamo Zagreb,Defender,36,2145.0,60.55830583058306
+6,progressive distributors,62670,Ljuban Crepulja,Slaven Koprivnica,Midfielder,32,2154.0,58.47021587404642
+6,progressive distributors,74022,Stefan Ristovski,Dinamo Zagreb,Defender,34,1891.0,57.875412541254114
+6,progressive distributors,37266383,Marco Boras,Slaven Koprivnica,Defender,24,982.0,56.56628162816281
+6,progressive distributors,37535538,Luka Dajcer,Lokomotiva Zagreb,Defender,25,1845.0,56.35107260726072
+6,progressive distributors,62765,Samy Mmaee,Dinamo Zagreb,Defender,29,1240.0,56.21149614961496
+6,progressive distributors,37596442,Dominik Prpić,Hajduk Split,Defender,22,2461.0,55.279152915291526
+6,progressive distributors,37744101,Agyemang Morrison,Šibenik,Defender,21,2790.0,55.00756325632563
+6,progressive distributors,17525250,Kresimir Krizmanic,Gorica,Defender,26,2788.0,54.44856985698569
+6,progressive distributors,73519,Josip Misic,Dinamo Zagreb,Midfielder,32,2168.0,53.55542931342314
+6,progressive distributors,37742,Stefan Peric,Šibenik,Defender,29,1982.0,51.94788228822882
+6,progressive distributors,73659,Luka Lucic,Slaven Koprivnica,Midfielder,31,2739.0,48.83785099821458
+6,progressive distributors,432894,Maxime Bernauer,Dinamo Zagreb,Defender,28,735.0,48.62692519251925
+6,progressive distributors,74023,Leonard Žuta,Šibenik,Defender,33,2339.0,47.72552255225522
+7,safe passers,5270348,Jon Mersinaj,Lokomotiva Zagreb,Defender,27,606.0,46.30913091309131
+8,balanced profile,76047,Ivan Sušak,Slaven Koprivnica,Goalkeeper,28,2880.0,69.28571428571428
+8,balanced profile,74526,Ivan Banic,Gorica,Goalkeeper,31,2430.0,64.28571428571429
+8,balanced profile,73710,Marko Malenica,Osijek,Goalkeeper,32,2880.0,48.57142857142857
+8,balanced profile,76452,Zvonimir Subaric,Lokomotiva Zagreb,Goalkeeper,29,2970.0,45.71428571428571
+8,balanced profile,73489,Ivan Filipovic,Dinamo Zagreb,Goalkeeper,31,1260.0,40.0
+8,balanced profile,67094,B. Radošević,Gorica,Goalkeeper,37,551.0,40.0
+8,balanced profile,21404328,Antonio Đaković,Šibenik,Goalkeeper,25,1890.0,39.285714285714285
+8,balanced profile,132583,Marijan Ćorić,Istra 1961,Goalkeeper,31,450.0,20.71428571428571
+9,goalkeeper distributors,73640,Oliver Zelenika,Varaždin,Goalkeeper,33,2880.0,67.85714285714286
+9,goalkeeper distributors,7330,Ivan Lucic,Hajduk Split,Goalkeeper,31,2496.0,66.42857142857142
+9,goalkeeper distributors,1525038,Lovro Majkic,Istra 1961,Goalkeeper,26,2751.0,61.42857142857142
+9,goalkeeper distributors,1193792,Martin Zlomislic,Rijeka,Goalkeeper,27,3054.0,56.42857142857142
+9,goalkeeper distributors,73451,Danijel Zagorac,Dinamo Zagreb,Goalkeeper,39,810.0,56.42857142857142
+9,goalkeeper distributors,74071,Ivan Nevistic,Dinamo Zagreb,Goalkeeper,27,2160.0,53.57142857142858

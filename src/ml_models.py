@@ -318,21 +318,117 @@ def find_similar_players(
     return top_matches
 
 
-# A handful of representative searches, saved to
-# SIMILARITY_OUTPUT_CSV_PATH on every pipeline run so the feature -
-# including the Stage B3 filters - is demonstrated without requiring an
-# interactive session.
+# Preferred example players for the demonstration searches below. These
+# names come from the 2025/2026 HNL squad - a different season (e.g.
+# 2024/2025) won't have them, so build_example_similarity_queries() falls
+# back to an auto-picked stand-in (top attacker/midfielder/defender/young
+# talent for whichever season is actually loaded) rather than silently
+# producing an empty example.
+#
+# example_slot is a stable identifier for "which demonstration example this
+# is" (midfielder_example, attacker_example, ...), independent of *which*
+# player currently fills it. It's carried through to the saved CSV so
+# downstream readers (visualization.py, report.py) can find "the attacker
+# example" without matching on player name/role - those can collide (two
+# different slots can resolve to the very same fallback player, e.g. a
+# season's overall top scorer might also be its top young talent), but two
+# slots are never the same example_slot.
 EXAMPLE_SIMILARITY_QUERIES = [
     # same_position_only=True: a stricter, like-for-like comparison - only
     # other midfielders are considered, not just "similar per-90 shape"
     # regardless of role.
-    {"player_name": "Ismaël Bennacer", "role": "midfielder", "same_position_only": True},
-    {"player_name": "Dion Beljo", "role": "attacker"},
-    {"player_name": "Sergi Domínguez", "role": "passer_defender"},
+    {
+        "player_name": "Ismaël Bennacer", "role": "midfielder", "same_position_only": True,
+        "example_slot": "midfielder_example",
+        "fallback_position": "Midfielder", "fallback_score_col": "overall_score",
+    },
+    {
+        "player_name": "Dion Beljo", "role": "attacker",
+        "example_slot": "attacker_example",
+        "fallback_position": "Attacker", "fallback_score_col": "attacking_score",
+    },
+    {
+        "player_name": "Sergi Domínguez", "role": "passer_defender",
+        "example_slot": "defender_example",
+        "fallback_position": "Defender", "fallback_score_col": "passer_defender_score",
+    },
     # "Similar young players": no skill-specific role, just overall
     # statistical shape, filtered to this project's U23 cutoff (age <= 23).
-    {"player_name": "Adriano Jagusic", "role": "overall", "max_age": 23},
+    {
+        "player_name": "Adriano Jagusic", "role": "overall", "max_age": 23,
+        "example_slot": "young_talent_example",
+        "fallback_score_col": "age_potential_score", "fallback_max_age": 23,
+    },
 ]
+
+
+def pick_top_player(ml_df, score_col, position=None, max_age=None):
+    """The single best player by score_col, optionally restricted to a
+    position and/or an age ceiling. Returns None if nothing qualifies (e.g.
+    score_col is entirely NaN for that position - passer_defender_score is
+    only computed for defenders, for instance)."""
+    pool = ml_df.dropna(subset=[score_col])
+    if position is not None:
+        pool = pool[pool["position"] == position]
+    if max_age is not None:
+        pool = pool[pool["age"] <= max_age]
+    if pool.empty:
+        return None
+    return pool.sort_values(score_col, ascending=False).iloc[0]["player_name"]
+
+
+def resolve_example_player(ml_df, preferred_name, fallback_position=None,
+                            fallback_score_col="overall_score", fallback_max_age=None):
+    """Season-aware example player resolution: keep `preferred_name` if this
+    season's squad actually has them, otherwise auto-pick a sensible stand-in
+    (e.g. this season's top attacker) so demonstration queries never go
+    silently empty just because a name hardcoded for one season isn't in
+    another's data."""
+    if preferred_name in ml_df["player_name"].values:
+        return preferred_name
+
+    fallback = pick_top_player(
+        ml_df, fallback_score_col, position=fallback_position, max_age=fallback_max_age,
+    )
+    if fallback is not None:
+        logger.info(
+            "Example player '%s' not found this season - using '%s' instead "
+            "(top by %s%s).", preferred_name, fallback, fallback_score_col,
+            f", position={fallback_position}" if fallback_position else "",
+        )
+    else:
+        logger.warning(
+            "Example player '%s' not found this season, and no fallback "
+            "candidate qualified (position=%s, max_age=%s) - this example "
+            "will be skipped.", preferred_name, fallback_position, fallback_max_age,
+        )
+    return fallback
+
+
+def build_example_similarity_queries(ml_df, queries=EXAMPLE_SIMILARITY_QUERIES):
+    """Resolves each entry in `queries` to a real player in `ml_df` (the
+    preferred name if present, otherwise a data-driven fallback - see
+    resolve_example_player). Returns dicts with "player_name", "example_slot",
+    and whatever find_similar_players()-ready kwargs (role, max_age, ...) the
+    query had - fallback-only keys stripped out. Callers that pass these
+    straight to find_similar_players must pop "example_slot" first (it isn't
+    one of that function's parameters)."""
+    resolved = []
+    for query in queries:
+        fallback_keys = {"fallback_position", "fallback_score_col", "fallback_max_age"}
+        player_name = resolve_example_player(
+            ml_df, query["player_name"],
+            fallback_position=query.get("fallback_position"),
+            fallback_score_col=query.get("fallback_score_col", "overall_score"),
+            fallback_max_age=query.get("fallback_max_age"),
+        )
+        if player_name is None:
+            continue
+        resolved.append({
+            "player_name": player_name,
+            **{k: v for k, v in query.items() if k not in fallback_keys and k != "player_name"},
+        })
+    return resolved
 
 
 def _describe_filters(query):
@@ -350,20 +446,27 @@ def _describe_filters(query):
     return ", ".join(parts)
 
 
-def build_similarity_examples(ml_df, queries=EXAMPLE_SIMILARITY_QUERIES, top_n=10):
+def build_similarity_examples(ml_df, queries=None, top_n=10):
+    if queries is None:
+        queries = build_example_similarity_queries(ml_df)
+
     tables = []
     for query in queries:
         player_name = query["player_name"]
-        filter_kwargs = {k: v for k, v in query.items() if k != "player_name"}
+        example_slot = query.get("example_slot")
+        filter_kwargs = {
+            k: v for k, v in query.items() if k not in ("player_name", "example_slot")
+        }
         try:
             table = find_similar_players(ml_df, player_name, top_n=top_n, **filter_kwargs)
-            table.insert(2, "filters", _describe_filters(query))
+            table.insert(2, "example_slot", example_slot)
+            table.insert(3, "filters", _describe_filters(query))
             tables.append(table)
         except ValueError as exc:
             logger.warning("Similarity example skipped: %s", exc)
     if not tables:
         return pd.DataFrame(columns=[
-            "query_player", "role", "filters", "rank", "player_name",
+            "query_player", "role", "example_slot", "filters", "rank", "player_name",
             "team_name", "position", "similarity",
         ])
     return pd.concat(tables, ignore_index=True)

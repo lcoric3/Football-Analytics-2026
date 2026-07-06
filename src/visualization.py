@@ -37,9 +37,9 @@ logger = logging.getLogger(__name__)
 SCORED_CSV_PATH = season_config.processed_path("hnl_player_scored")
 SPECIALIST_CSV_PATH = season_config.output_path("specialist_rankings_hnl")
 SIMILARITY_CSV_PATH = season_config.output_path("player_similarity_results")
-# Not yet season-suffixed - charts from different seasons currently share
-# this one folder. Deferred to the multi-season dashboard stage.
-FIGURES_DIR = "reports/figures"
+# One folder per season (e.g. reports/figures_2025_2026) so regenerating
+# one season's charts never overwrites another's.
+FIGURES_DIR = season_config.figures_dir()
 TOP_N = 10
 U23_AGE_LIMIT = 23
 
@@ -302,41 +302,54 @@ def plot_specialist_score_comparison(scored_df, specialist_df):
     _save(fig, "specialist_score_comparison.png")
 
 
-def _plot_similarity_bar(similarity_df, query_player, role, filename, title):
-    sub = similarity_df[
-        (similarity_df["query_player"] == query_player) & (similarity_df["role"] == role)
-    ].sort_values("rank")
+# example_slot -> (chart filename, title template with a {player}
+# placeholder). Keyed by the stable example_slot identifier
+# (ml_models.EXAMPLE_SIMILARITY_QUERIES), not by role or a specific player
+# name: role/player_name can collide across slots in a given season (e.g.
+# the young-talent fallback can land on the same player as the midfielder
+# fallback), but example_slot never does. The query player itself is
+# resolved per-season by ml_models.build_example_similarity_queries (the
+# 2025/2026 example if that player exists this season, otherwise a
+# data-driven fallback - this season's top attacker/midfielder/defender)
+# and read back out of similarity_df below, so nothing here hardcodes a
+# name that might not exist this season.
+SIMILARITY_EXAMPLE_CHARTS = {
+    # Stage B3: same_position_only=True (a stricter, like-for-like
+    # comparison) for this slot - see ml_models.EXAMPLE_SIMILARITY_QUERIES.
+    "midfielder_example": (
+        "player_similarity_midfielder_example.png",
+        "Players Most Similar to {player} (midfielder, same position only)",
+    ),
+    "attacker_example": (
+        "player_similarity_attacker_example.png",
+        "Players Most Similar to {player} (attacker)",
+    ),
+    "defender_example": (
+        "player_similarity_defender_example.png",
+        "Players Most Similar to {player} (passer defender)",
+    ),
+}
+
+
+def _plot_similarity_bar(similarity_df, example_slot, filename, title_template):
+    sub = similarity_df[similarity_df["example_slot"] == example_slot].sort_values("rank")
     if sub.empty:
-        logger.warning("No similarity results for %s (role=%s) - skipping %s", query_player, role, filename)
+        logger.warning("No similarity results for example_slot=%s - skipping %s", example_slot, filename)
         return
+    query_player = sub["query_player"].iloc[0]
     labels = [f"{r.player_name} ({r.team_name})" for r in sub.itertuples()]
-    _barh_chart(labels, sub["similarity"].values, title, "Cosine similarity (0-1)", filename, color=VIOLET, value_fmt="{:.2f}")
-
-
-def plot_similarity_bennacer(similarity_df):
-    # Stage B3: the example query changed to role="midfielder" with
-    # same_position_only=True (a stricter, like-for-like comparison) -
-    # this must match ml_models.EXAMPLE_SIMILARITY_QUERIES exactly, or
-    # this chart silently finds no matching rows and gets skipped.
-    _plot_similarity_bar(
-        similarity_df, "Ismaël Bennacer", "midfielder",
-        "player_similarity_bennacer.png",
-        "Players Most Similar to Ismaël Bennacer (midfielder, same position only)",
+    _barh_chart(
+        labels, sub["similarity"].values, title_template.format(player=query_player),
+        "Cosine similarity (0-1)", filename, color=VIOLET, value_fmt="{:.2f}",
     )
 
 
-def plot_similarity_beljo(similarity_df):
-    _plot_similarity_bar(
-        similarity_df, "Dion Beljo", "attacker",
-        "player_similarity_beljo.png", "Players Most Similar to Dion Beljo (attacker)",
-    )
-
-
-def plot_similarity_dominguez(similarity_df):
-    _plot_similarity_bar(
-        similarity_df, "Sergi Domínguez", "passer_defender",
-        "player_similarity_dominguez.png", "Players Most Similar to Sergi Domínguez (passer defender)",
-    )
+def plot_similarity_examples(similarity_df):
+    """One bar chart per entry in SIMILARITY_EXAMPLE_CHARTS - whichever
+    player was actually searched for that slot this season (see
+    ml_models.build_example_similarity_queries)."""
+    for example_slot, (filename, title_template) in SIMILARITY_EXAMPLE_CHARTS.items():
+        _plot_similarity_bar(similarity_df, example_slot, filename, title_template)
 
 
 def plot_dribblers_scatter(df):
@@ -464,10 +477,19 @@ def plot_team_talent_map(df):
     )
 
 
-def plot_role_radar_examples(df):
+def plot_role_radar_examples(df, similarity_df):
+    """Radar comparison of the same three players used for the similarity
+    example charts above (SIMILARITY_EXAMPLE_CHARTS) - reads their names
+    back out of similarity_df rather than hardcoding them, so the radar
+    always matches whichever players this season's charts actually used."""
     metrics = ["attacking_score", "creative_score", "defensive_score", "dribbling_score", "passing_score"]
     metric_labels = [METRIC_LABELS[m] for m in metrics]
-    players = ["Ismaël Bennacer", "Dion Beljo", "Sergi Domínguez"]
+
+    players = []
+    for example_slot in SIMILARITY_EXAMPLE_CHARTS:
+        sub = similarity_df[similarity_df["example_slot"] == example_slot]
+        if not sub.empty:
+            players.append(sub["query_player"].iloc[0])
 
     series = {}
     for name in players:
@@ -504,11 +526,10 @@ def run():
     else:
         logger.warning("%s not found - skipping specialist_score_comparison.png. Run analysis.run() first.", SPECIALIST_CSV_PATH)
 
+    similarity_df = None
     if os.path.exists(SIMILARITY_CSV_PATH):
         similarity_df = pd.read_csv(SIMILARITY_CSV_PATH)
-        plot_similarity_bennacer(similarity_df)
-        plot_similarity_beljo(similarity_df)
-        plot_similarity_dominguez(similarity_df)
+        plot_similarity_examples(similarity_df)
     else:
         logger.warning("%s not found - skipping similarity charts. Run ml_models.run() first.", SIMILARITY_CSV_PATH)
 
@@ -520,7 +541,11 @@ def run():
     plot_minutes_vs_overall_score(df)
     plot_position_score_distribution(df)
     plot_team_talent_map(df)
-    plot_role_radar_examples(df)
+
+    if similarity_df is not None:
+        plot_role_radar_examples(df, similarity_df)
+    else:
+        logger.warning("%s not found - skipping role_radar_examples.png.", SIMILARITY_CSV_PATH)
 
 
 if __name__ == "__main__":

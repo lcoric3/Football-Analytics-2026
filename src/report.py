@@ -5,7 +5,7 @@ Football data science logic:
 This module computes nothing new about players - it only reads whatever
 scouting_scores.py, analysis.py, ml_models.py, replacement_scouting.py, and
 visualization.py already produced (the scored/ranked/similarity/cluster/
-replacement CSVs and the PNGs in reports/figures/), formats it, and
+replacement CSVs and the PNGs in reports/figures_<season>/), formats it, and
 explains it in prose. That's a deliberate choice: a report that recomputes
 its own numbers can drift from the data it's supposed to summarize; a
 report that only reads already-saved files always matches the last
@@ -34,6 +34,9 @@ CLUSTERS_CSV_PATH = season_config.output_path("player_clusters")
 # so the Markdown report links to this one by name, not full path.
 CLUSTER_PROFILES_REPORT_FILE = os.path.basename(season_config.cluster_profiles_report_path())
 REPORT_PATH = season_config.scouting_report_path()
+# Folder name only (e.g. "figures_2025_2026") - this report lives directly
+# in reports/, so image links are relative to that, not to the repo root.
+FIGURES_DIR_NAME = season_config.figures_dir_name()
 
 TOP_N = 10
 
@@ -83,12 +86,18 @@ def _find_underrated(scored_df, top_n=8):
     )
 
 
-def _similarity_section(similarity_df, query_player, role, chart_file=None, top_n=TOP_N):
-    subset = similarity_df[
-        (similarity_df["query_player"] == query_player) & (similarity_df["role"] == role)
-    ].sort_values("rank").head(top_n)
+def _similarity_section(similarity_df, example_slot, chart_file=None, top_n=TOP_N):
+    """example_slot (e.g. "midfielder_example") identifies which
+    demonstration example this is - not the player name or role, since two
+    slots can resolve to the same fallback player in a given season (see
+    ml_models.EXAMPLE_SIMILARITY_QUERIES). The query player and role shown
+    below are read from the data, so this always reflects whichever player
+    this season's pipeline actually searched for that slot."""
+    subset = similarity_df[similarity_df["example_slot"] == example_slot].sort_values("rank").head(top_n)
     if subset.empty:
-        return f"*No similarity example available for {query_player} (role: `{role}`).*\n"
+        return f"*No similarity example available for slot `{example_slot}`.*\n"
+    query_player = subset["query_player"].iloc[0]
+    role = subset["role"].iloc[0]
     filters = subset["filters"].iloc[0] if "filters" in subset.columns else ""
     filters_note = f" - filters: `{filters}`" if isinstance(filters, str) and filters else ""
     table = _md_table(
@@ -105,10 +114,13 @@ def _similarity_section(similarity_df, query_player, role, chart_file=None, top_
     )
 
 
-def _replacement_section(replacement_df, query_player, top_n=TOP_N):
-    subset = replacement_df[replacement_df["query_player"] == query_player].sort_values("rank").head(top_n)
+def _replacement_section(replacement_df, example_slot, top_n=TOP_N):
+    """example_slot identifies which demonstration example this is - see
+    _similarity_section's docstring for why (not player name/role)."""
+    subset = replacement_df[replacement_df["example_slot"] == example_slot].sort_values("rank").head(top_n)
     if subset.empty:
-        return f"*No replacement-target example available for {query_player}.*\n"
+        return f"*No replacement-target example available for slot `{example_slot}`.*\n"
+    query_player = subset["query_player"].iloc[0]
     role = subset["role"].iloc[0]
     table = _md_table(
         subset,
@@ -151,7 +163,7 @@ def build_report(
 
     L = []
     L.append(f"# HNL {season_config.SEASON_NAME} Scouting Report")
-    L.append(f"\n*Generated {today} by `src/report.py`, from the current contents of `data/` and `reports/figures/`.*\n")
+    L.append(f"\n*Generated {today} by `src/report.py`, from the current contents of `data/` and `reports/{FIGURES_DIR_NAME}/`.*\n")
 
     # 1. Project summary --------------------------------------------------
     L.append("## 1. Project Summary\n")
@@ -253,7 +265,7 @@ def build_report(
         decimals={"overall_score": 1, "age": 0},
     ))
     L.append(
-        "\n![Top 15 overall players](figures/top_overall_players.png)\n\n"
+        f"\n![Top 15 overall players]({FIGURES_DIR_NAME}/top_overall_players.png)\n\n"
         "`overall_score` blends attacking, creative, and defensive "
         "contribution (each judged against same-position peers) plus a "
         "small discipline factor. Because each ingredient is now "
@@ -271,7 +283,7 @@ def build_report(
         decimals={"overall_score": 1, "age": 0},
     ))
     L.append(
-        "\n![Top 15 U23 players](figures/top_u23_players.png)\n\n"
+        f"\n![Top 15 U23 players]({FIGURES_DIR_NAME}/top_u23_players.png)\n\n"
         "Same `overall_score` ranking, filtered to age 23 and under. Useful "
         "for spotting resale/development value rather than just current "
         "output - see Section 8 for a lens that also weighs age and "
@@ -366,7 +378,7 @@ def build_report(
         decimals={"attacking_score": 1, "age": 0},
     ))
     L.append(
-        "\n![Top 10 goals per 90](figures/top10_goals_per90.png)\n\n"
+        f"\n![Top 10 goals per 90]({FIGURES_DIR_NAME}/top10_goals_per90.png)\n\n"
         "`attacking_score` is goal output, shots on target, and finishing "
         "quality, judged against other attackers - not raw goal totals, so "
         "a striker who has played fewer minutes but finishes efficiently "
@@ -382,7 +394,7 @@ def build_report(
         decimals={"creative_score": 1, "age": 0},
     ))
     L.append(
-        "\n![Top 10 assists per 90](figures/top10_assists_per90.png)\n\n"
+        f"\n![Top 10 assists per 90]({FIGURES_DIR_NAME}/top10_assists_per90.png)\n\n"
         "Unlike `best_midfield_creators` (position-filtered), `best_creators` "
         "is open to every position - it's a league-wide leaderboard of "
         "`creative_score` (assists, passing volume, passing quality), so a "
@@ -414,7 +426,7 @@ def build_report(
         decimals={"successful_dribbles_per90": 2, "dribble_success_rate": 1},
     ))
     L.append(
-        "\n![Dribbling volume vs efficiency](figures/dribblers_scatter.png)\n\n"
+        f"\n![Dribbling volume vs efficiency]({FIGURES_DIR_NAME}/dribblers_scatter.png)\n\n"
         "`dribbling_score` combines volume (successful dribbles per 90) with "
         "quality (% of attempts that succeed), so a player who tries 10 to "
         "land 2 doesn't outrank one who tries 3 to land 2. The scatter above "
@@ -431,7 +443,7 @@ def build_report(
         decimals={"passes_per90": 1, "key_passes_per90": 2, "pass_accuracy": 1},
     ))
     L.append(
-        "\n![Passing: safe vs creative](figures/passers_scatter.png)\n\n"
+        f"\n![Passing: safe vs creative]({FIGURES_DIR_NAME}/passers_scatter.png)\n\n"
         "`passing_score` deliberately treats pass accuracy as only one of "
         "five equally-weighted ingredients - a centre-back playing safe "
         "five-yard passes all game can hit 95% accuracy without creating "
@@ -449,7 +461,7 @@ def build_report(
         decimals={"tackles_per90": 2, "interceptions_per90": 2, "aerials_won_per90": 2},
     ))
     L.append(
-        "\n![Duel defending profile](figures/defender_profile_scatter.png)\n\n"
+        f"\n![Duel defending profile]({FIGURES_DIR_NAME}/defender_profile_scatter.png)\n\n"
         "`duel_defending_score` is pure ball-winning ability (tackles, "
         "interceptions, aerials, duel success), judged league-wide rather "
         "than only against other defenders - so a defensively strong "
@@ -484,7 +496,7 @@ def build_report(
         decimals={"passer_defender_score": 1, "passes_per90": 1, "pass_accuracy": 1, "age": 0},
     ))
     L.append(
-        "\n![Passer defender profile](figures/passer_defender_scatter.png)\n\n"
+        f"\n![Passer defender profile]({FIGURES_DIR_NAME}/passer_defender_scatter.png)\n\n"
         "`best_passer_defenders` and `best_ball_playing_defenders` are "
         "**the same ranking** - both are sorted by one shared "
         "`passer_defender_score` (50% within-position passing quality, 50% "
@@ -500,7 +512,7 @@ def build_report(
 
     L.append(
         "### Comparing the specialists\n\n"
-        "![Specialist score comparison](figures/specialist_score_comparison.png)\n\n"
+        f"![Specialist score comparison]({FIGURES_DIR_NAME}/specialist_score_comparison.png)\n\n"
         "A snapshot of the five specialist scores (Sections 12-16) "
         "side by side for a handful of players pulled from the top of each "
         "category. Notice how uneven each player's bars are - that's the "
@@ -600,28 +612,41 @@ def build_report(
         "filtered and unfiltered searches.\n\n"
     )
     L.append(_similarity_section(
-        similarity_df, "Ismaël Bennacer", "midfielder",
-        "figures/player_similarity_bennacer.png",
+        similarity_df, "midfielder_example",
+        f"{FIGURES_DIR_NAME}/player_similarity_midfielder_example.png",
     ))
     L.append(_similarity_section(
-        similarity_df, "Sergi Domínguez", "passer_defender",
-        "figures/player_similarity_dominguez.png",
+        similarity_df, "defender_example",
+        f"{FIGURES_DIR_NAME}/player_similarity_defender_example.png",
     ))
     L.append(_similarity_section(
-        similarity_df, "Dion Beljo", "attacker",
-        "figures/player_similarity_beljo.png",
+        similarity_df, "attacker_example",
+        f"{FIGURES_DIR_NAME}/player_similarity_attacker_example.png",
     ))
-    L.append(_similarity_section(similarity_df, "Adriano Jagusic", "overall"))
+    L.append(_similarity_section(similarity_df, "young_talent_example"))
+
+    # Radar caption: names the same three players used for the similarity
+    # example charts above (whichever this season's data resolved them to -
+    # see ml_models.EXAMPLE_SIMILARITY_QUERIES), not a fixed prose claim
+    # about which one "spikes" on which metric - that was true for the
+    # original 2025/2026 examples but isn't guaranteed for a fallback pick.
+    radar_slots = ["midfielder_example", "attacker_example", "defender_example"]
+    radar_players = [
+        similarity_df.loc[similarity_df["example_slot"] == slot, "query_player"].iloc[0]
+        for slot in radar_slots
+        if (similarity_df["example_slot"] == slot).any()
+    ]
     L.append(
-        "![Profile comparison: Bennacer, Beljo, Domínguez](figures/role_radar_examples.png)\n\n"
-        "The radar chart puts three query players on the same five "
-        "axes (attacking/creative/defensive/dribbling/passing scores). It "
-        "makes each player's *shape* obvious at a glance: Beljo spikes hard "
-        "on attacking and barely registers elsewhere (a specialist "
-        "profile), while Bennacer and Domínguez are more balanced across "
-        "several dimensions - which is exactly why role-based similarity "
-        "search (Section 19) matters more than a single 'overall' "
-        "comparison.\n"
+        f"![Profile comparison: {', '.join(radar_players)}]({FIGURES_DIR_NAME}/role_radar_examples.png)\n\n"
+        f"The radar chart puts {len(radar_players)} query players "
+        "(the same midfielder/attacker/defender examples used above) on "
+        "the same five axes (attacking/creative/defensive/dribbling/"
+        "passing scores). It makes each player's *shape* obvious at a "
+        "glance - a specialist spikes hard on one or two axes and barely "
+        "registers elsewhere, while an all-rounder stays more balanced "
+        "across several dimensions - which is exactly why role-based "
+        "similarity search (Section 19) matters more than a single "
+        "'overall' comparison.\n"
     )
 
     # 19. Cosine similarity explanation --------------------------------
@@ -688,10 +713,10 @@ def build_report(
         "reproducible first-pass shortlist for a human scout to start "
         "from, not a conclusion.\n"
     )
-    L.append(_replacement_section(replacement_df, "Dion Beljo"))
-    L.append(_replacement_section(replacement_df, "Ismaël Bennacer"))
-    L.append(_replacement_section(replacement_df, "Sergi Domínguez"))
-    L.append(_replacement_section(replacement_df, "Gabriel Vidovic"))
+    L.append(_replacement_section(replacement_df, "attacker_example"))
+    L.append(_replacement_section(replacement_df, "midfielder_example"))
+    L.append(_replacement_section(replacement_df, "defender_example"))
+    L.append(_replacement_section(replacement_df, "young_talent_example"))
 
     # 21. Player cluster profiles (Stage B5) --------------------------------
     L.append("## 21. Player Cluster Profiles\n")
@@ -729,7 +754,7 @@ def build_report(
     # 22. Additional charts ------------------------------------------------
     L.append("## 22. Additional Charts\n")
     L.append(
-        "![Age vs overall score](figures/age_vs_overall_score.png)\n\n"
+        f"![Age vs overall score]({FIGURES_DIR_NAME}/age_vs_overall_score.png)\n\n"
         "Every eligible **outfield** player's age against their "
         "`overall_score` (goalkeepers excluded, per Section 6), with U23 "
         "players highlighted and the top 5 labeled. Useful for spotting "
@@ -737,7 +762,7 @@ def build_report(
         "emerging talent or a standalone outlier.\n"
     )
     L.append(
-        "![Minutes vs overall score](figures/minutes_vs_overall_score.png)\n\n"
+        f"![Minutes vs overall score]({FIGURES_DIR_NAME}/minutes_vs_overall_score.png)\n\n"
         "`overall_score` against minutes played, with the 450-minute "
         "eligibility floor marked. All points clear that floor by "
         "definition (lower-minute players are excluded from scoring "
@@ -747,7 +772,7 @@ def build_report(
         "comparing two similar scores.\n"
     )
     L.append(
-        "![Overall score distribution by position](figures/position_score_distribution.png)\n\n"
+        f"![Overall score distribution by position]({FIGURES_DIR_NAME}/position_score_distribution.png)\n\n"
         "This is the chart that explains *why* position-aware scoring "
         "(Section 6) was worth adding, and why goalkeepers were removed "
         "from outfield rankings entirely: before Stage 1, `attacking_score` "
@@ -763,7 +788,7 @@ def build_report(
         "`goalkeeper_score` model instead.\n"
     )
     L.append(
-        "![Team talent map](figures/team_talent_map.png)\n\n"
+        f"![Team talent map]({FIGURES_DIR_NAME}/team_talent_map.png)\n\n"
         "Average `overall_score` among eligible **outfield** players "
         "(450+ minutes, goalkeepers excluded) per "
         "club, with the eligible squad size shown in parentheses. This is a "

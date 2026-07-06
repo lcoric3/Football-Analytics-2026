@@ -54,3 +54,16 @@ def cluster_profiles_report_path():
 
 def scouting_report_path():
     return f"{REPORTS_DIR}/hnl_{OUTPUT_SUFFIX}_scouting_report.md"
+
+
+def figures_dir_name():
+    """e.g. "figures_2025_2026" - just the folder name, for building
+    relative Markdown image links (the report lives in REPORTS_DIR itself,
+    so links are relative to that, not to the repo root)."""
+    return f"figures_{OUTPUT_SUFFIX}"
+
+
+def figures_dir():
+    """e.g. "reports/figures_2025_2026" - one folder per season, so
+    regenerating one season's charts never overwrites another's."""
+    return f"{REPORTS_DIR}/{figures_dir_name()}"

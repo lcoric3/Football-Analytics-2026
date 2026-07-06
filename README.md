@@ -25,14 +25,14 @@ SportMonks API -> raw data -> cleaned data -> feature engineering
 
 ## Screenshots
 
-A few of the 19 charts generated in `reports/figures/` (see the full,
+A few of the 19 charts generated in `reports/figures_2025_2026/` (see the full,
 narrated set in [`reports/hnl_2025_2026_scouting_report.md`](reports/hnl_2025_2026_scouting_report.md)):
 
 | | |
 |---|---|
-| ![Top 15 overall players](reports/figures/top_overall_players.png) | ![Team talent map](reports/figures/team_talent_map.png) |
+| ![Top 15 overall players](reports/figures_2025_2026/top_overall_players.png) | ![Team talent map](reports/figures_2025_2026/team_talent_map.png) |
 | Top overall players by `overall_score` | Average outfield `overall_score` per club |
-| ![Role radar comparison](reports/figures/role_radar_examples.png) | ![Overall score distribution by position](reports/figures/position_score_distribution.png) |
+| ![Role radar comparison](reports/figures_2025_2026/role_radar_examples.png) | ![Overall score distribution by position](reports/figures_2025_2026/position_score_distribution.png) |
 | Statistical "shape" of three example players | Why scoring is position-aware |
 
 ## Setup
@@ -132,7 +132,7 @@ Football-Analytics-2026/
 │   ├── processed/           # Cleaned + feature-engineered CSVs
 │   └── output/               # Final ranking CSVs
 ├── notebooks/                # Exploratory analysis
-└── reports/figures/          # Generated charts
+└── reports/figures_<season>/     # Generated charts (one folder per season)
 ```
 
 ## Generated files
@@ -145,7 +145,7 @@ Football-Analytics-2026/
 | `data/processed/hnl_player_scored_2025_2026.csv` | `scouting_scores.py` | Adds scouting scores |
 | `data/output/top_players_hnl_2025_2026.csv` | `analysis.py` | Ranking tables (top scorers, defenders, etc.) |
 | `data/output/specialist_rankings_hnl_2025_2026.csv` | `analysis.py` | Dribblers, passers, duel defenders, progressive midfielders, passer/ball-playing defenders, creators, ball winners, and U23 versions of those |
-| `reports/figures/*.png` | `visualization.py` | Charts (19 total - leaderboards, scatter plots, a radar chart) |
+| `reports/figures_2025_2026/*.png` | `visualization.py` | Charts (19 total - leaderboards, scatter plots, a radar chart) |
 | `data/processed/hnl_ml_features_2025_2026.csv` | `ml_models.py` | ML-ready dataset |
 | `data/output/player_similarity_results_2025_2026.csv` | `ml_models.py` | Example player-similarity searches |
 | `data/output/player_clusters_2025_2026.csv` | `ml_models.py` | Every eligible player's cluster assignment and name |
@@ -461,7 +461,7 @@ module docstring for why each list is filtered/sorted the way it is.
 
 ## Charts and the scouting report
 
-`visualization.py` saves 19 charts to `reports/figures/` - leaderboards
+`visualization.py` saves 19 charts to `reports/figures_2025_2026/` - leaderboards
 (top overall, top U23, top goals/assists per 90), scatter plots (dribbling
 volume vs. efficiency, safe vs. creative passing, defender/passer-defender
 profiles, age/minutes vs. overall score, position score distribution,
@@ -488,7 +488,7 @@ report.run()
 `app.py` is a Streamlit dashboard over the pipeline's existing outputs -
 it **never calls the SportMonks API and never writes or recomputes any
 data**, it only reads the CSVs in `data/processed/` and `data/output/`,
-the charts in `reports/figures/`, and the Markdown reports. Run
+the charts in `reports/figures_2025_2026/`, and the Markdown reports. Run
 `python main.py` at least once first, then:
 
 ```powershell
@@ -512,7 +512,7 @@ Pages (sidebar navigation):
   standouts (team-context scoring).
 - **Clusters** - cluster sizes/names, players per cluster, and the full
   cluster profiles report.
-- **Charts / report** - every chart in `reports/figures/` plus the full
+- **Charts / report** - every chart in `reports/figures_2025_2026/` plus the full
   Markdown scouting report.
 
 If a required CSV/chart/report is missing, the affected page shows an
