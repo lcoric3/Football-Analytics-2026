@@ -28,42 +28,48 @@ OUTPUT_DIR = "data/output"
 REPORTS_DIR = "reports"
 
 
-def raw_json_path():
-    return f"{RAW_DIR}/hnl_player_stats_raw_{OUTPUT_SUFFIX}.json"
+def raw_json_path(suffix=None):
+    return f"{RAW_DIR}/hnl_player_stats_raw_{suffix or OUTPUT_SUFFIX}.json"
 
 
-def raw_csv_path():
-    return f"{RAW_DIR}/hnl_player_stats_raw_{OUTPUT_SUFFIX}.csv"
+def raw_csv_path(suffix=None):
+    return f"{RAW_DIR}/hnl_player_stats_raw_{suffix or OUTPUT_SUFFIX}.csv"
 
 
-def processed_path(base_name):
+def processed_path(base_name, suffix=None):
     """e.g. processed_path("hnl_player_stats_clean")
-    -> "data/processed/hnl_player_stats_clean_2025_2026.csv" """
-    return f"{PROCESSED_DIR}/{base_name}_{OUTPUT_SUFFIX}.csv"
+    -> "data/processed/hnl_player_stats_clean_2025_2026.csv"
+
+    `suffix` overrides the current-process season (OUTPUT_SUFFIX, set once
+    from HNL_OUTPUT_SUFFIX at import time) - the dashboard's season
+    selector needs this, since it switches seasons at runtime within one
+    process rather than via an environment variable."""
+    return f"{PROCESSED_DIR}/{base_name}_{suffix or OUTPUT_SUFFIX}.csv"
 
 
-def output_path(base_name):
+def output_path(base_name, suffix=None):
     """e.g. output_path("top_players_hnl")
-    -> "data/output/top_players_hnl_2025_2026.csv" """
-    return f"{OUTPUT_DIR}/{base_name}_{OUTPUT_SUFFIX}.csv"
+    -> "data/output/top_players_hnl_2025_2026.csv" - see processed_path's
+    docstring for what `suffix` is for."""
+    return f"{OUTPUT_DIR}/{base_name}_{suffix or OUTPUT_SUFFIX}.csv"
 
 
-def cluster_profiles_report_path():
-    return f"{REPORTS_DIR}/player_cluster_profiles_{OUTPUT_SUFFIX}.md"
+def cluster_profiles_report_path(suffix=None):
+    return f"{REPORTS_DIR}/player_cluster_profiles_{suffix or OUTPUT_SUFFIX}.md"
 
 
-def scouting_report_path():
-    return f"{REPORTS_DIR}/hnl_{OUTPUT_SUFFIX}_scouting_report.md"
+def scouting_report_path(suffix=None):
+    return f"{REPORTS_DIR}/hnl_{suffix or OUTPUT_SUFFIX}_scouting_report.md"
 
 
-def figures_dir_name():
+def figures_dir_name(suffix=None):
     """e.g. "figures_2025_2026" - just the folder name, for building
     relative Markdown image links (the report lives in REPORTS_DIR itself,
     so links are relative to that, not to the repo root)."""
-    return f"figures_{OUTPUT_SUFFIX}"
+    return f"figures_{suffix or OUTPUT_SUFFIX}"
 
 
-def figures_dir():
+def figures_dir(suffix=None):
     """e.g. "reports/figures_2025_2026" - one folder per season, so
     regenerating one season's charts never overwrites another's."""
-    return f"{REPORTS_DIR}/{figures_dir_name()}"
+    return f"{REPORTS_DIR}/{figures_dir_name(suffix)}"

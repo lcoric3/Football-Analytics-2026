@@ -488,14 +488,25 @@ report.run()
 `app.py` is a Streamlit dashboard over the pipeline's existing outputs -
 it **never calls the SportMonks API and never writes or recomputes any
 data**, it only reads the CSVs in `data/processed/` and `data/output/`,
-the charts in `reports/figures_2025_2026/`, and the Markdown reports. Run
-`python main.py` at least once first, then:
+the season-specific charts in `reports/figures_<season>/`, and the
+Markdown reports. Run `python main.py` at least once per season first
+(both 2025/2026 and 2024/2025, if you want both available), then:
 
 ```powershell
 streamlit run app.py
 ```
 
-Pages (sidebar navigation):
+A **Season** selector at the top of the sidebar switches between HNL
+2025/2026, HNL 2024/2025, and "Multi-season development" - unlike the
+rest of the pipeline (which picks its season from the
+`HNL_OUTPUT_SUFFIX` environment variable, fixed for the life of the
+process), this selector switches seasons instantly at runtime by pointing
+every page at that season's suffixed files (`season_config.processed_path`/
+`output_path`/etc. all accept an explicit `suffix=` override for exactly
+this).
+
+With **2025/2026** or **2024/2025** selected, a second **Section** control
+picks the page - every page below is available for both seasons:
 
 - **Overview** - dataset summary (player/team/eligible-player counts) and
   the full scouting report.
@@ -512,17 +523,59 @@ Pages (sidebar navigation):
   standouts (team-context scoring).
 - **Clusters** - cluster sizes/names, players per cluster, and the full
   cluster profiles report.
-- **Charts / report** - every chart in `reports/figures_2025_2026/` plus the full
-  Markdown scouting report.
+- **Charts / report** - every chart in that season's `reports/figures_<season>/`
+  plus the full Markdown scouting report.
 
-If a required CSV/chart/report is missing, the affected page shows an
-error pointing at `python main.py` instead of crashing the app.
+With **Multi-season development** selected, the dashboard shows a single
+page over `data/output/player_development_2024_2025_to_2025_2026.csv`:
+summary metrics (players matched, team changes, improved/declined counts),
+tabs for biggest improvers/decliners, young improvers, changed-team
+improvers, and hidden gems who improved, a player search with a
+2024/2025-vs-2025/2026 side-by-side comparison (scores, changes, flags),
+and the full multi-season report inline.
+
+If a required CSV/chart/report is missing for the selected season, the
+affected page shows an error pointing at `python main.py` instead of
+crashing the app.
+
+## Multi-season player development
+
+`src/player_development.py` compares every player who has scored,
+eligible-minutes data in **both** HNL 2024/2025 and HNL 2025/2026 - matched
+by `player_id` (never by name, since name strings can differ in
+accents/transliteration between API pulls, or collide between two
+different players) - to see who improved, who declined, who broke through
+as a young talent, and who kept improving after changing club. It never
+calls the SportMonks API and only reads the two seasons' already-generated
+`hnl_player_scored_*.csv` and `top_players_hnl_*.csv` files.
+
+Run it on its own (after both seasons' `python main.py` runs have already
+produced their per-season CSVs):
+
+```python
+from src import player_development
+player_development.run()
+```
+
+This produces:
+
+| File | Description |
+|---|---|
+| `data/output/player_development_2024_2025_to_2025_2026.csv` | One row per matched player: age/team/position/minutes/scores for both seasons, every `*_score_change` column, and flags (`changed_team`, `same_position`, `minutes_increased`, `young_player`, `improved_overall`, `improved_specialist_score`) |
+| `reports/hnl_multi_season_development_report.md` | Biggest improvers/decliners, young improvers, increased playing time, improved-after-transfer, specialist-score improvers, and hidden gems who kept improving - plus methodology and limitations |
+
+Like every other score in this project, a season-over-season change here
+is **season-relative, not absolute** - see that report's own Limitations
+section for the full caveat list (team context shifts between seasons,
+minutes affect reliability, a transfer can change a player's role, and
+SportMonks stat coverage can differ between seasons).
 
 ## Limitations
 
-- **One season only.** All scores and percentiles are relative to this
-  HNL 2025/2026 player pool - they say nothing about how a player would
-  rank in a different league or season.
+- **Two seasons of HNL only.** All scores and percentiles are relative to
+  that season's own HNL player pool - they say nothing about how a player
+  would rank in a different league, and the multi-season comparison above
+  only covers 2024/2025 -> 2025/2026 so far.
 - **Coarse SportMonks positions.** Only `Defender` / `Midfielder` /
   `Attacker` / `Goalkeeper` are exposed here, with no centre-back/
   full-back/wing-back split.
@@ -557,9 +610,9 @@ every pipeline run.)
   this competition/plan - would sharpen every position-aware score and
   cluster archetype (e.g. separating centre-backs from full-backs).
 - Real market value as an extra lens alongside `underrated_score`.
-- Multiple seasons of history, to support more robust percentile
-  baselines, more stable cluster archetypes, and a meaningful supervised
-  prediction model.
+- More seasons of history beyond the current 2024/2025 -> 2025/2026
+  comparison, to support more robust percentile baselines, more stable
+  cluster archetypes, and a meaningful supervised prediction model.
 - Cross-league benchmarking - all scores here are relative to the HNL
   player pool only.
 - Refine the cluster archetype signatures with feedback from reviewing a

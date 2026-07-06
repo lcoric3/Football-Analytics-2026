@@ -1,11 +1,20 @@
 """
-Streamlit dashboard for the HNL scouting project (season set by
-src/season_config.py, defaults to 2025/2026).
+Streamlit dashboard for the HNL scouting project - supports HNL 2025/2026,
+HNL 2024/2025, and the 2024/2025 -> 2025/2026 multi-season player
+development comparison, switchable at runtime via the sidebar "Season"
+selector (see main()).
 
-Read-only view over files the pipeline (`python main.py`) already produced -
-this file never calls the SportMonks API and never writes or recomputes any
-data file. It only reads CSVs from data/processed/ and data/output/, charts
-from reports/figures_<season>/, and the Markdown reports in reports/.
+Read-only view over files the pipeline (`python main.py`, run once per
+season) and `src/player_development.py` already produced - this file never
+calls the SportMonks API and never writes or recomputes any data file. It
+only reads CSVs from data/processed/ and data/output/, charts from
+reports/figures_<season>/, and the Markdown reports in reports/.
+
+Because the season selector switches seasons at runtime (not via the
+HNL_OUTPUT_SUFFIX environment variable, which is fixed for the lifetime of
+this process), every path below is built by passing an explicit `suffix`
+to season_config's helpers rather than relying on their env-derived
+defaults.
 
 Run with:
     streamlit run app.py
@@ -16,42 +25,29 @@ import pandas as pd
 import streamlit as st
 
 from src import ml_models
+from src import player_development
 from src import replacement_scouting
 from src import season_config
 from src.scouting_scores import MIN_MINUTES_FOR_SCORES
 
-st.set_page_config(page_title=f"HNL {season_config.SEASON_NAME} Scouting Dashboard", layout="wide")
+st.set_page_config(page_title="HNL Scouting Dashboard", layout="wide")
 
-SCORED_CSV = season_config.processed_path("hnl_player_scored")
-ML_FEATURES_CSV = season_config.processed_path("hnl_ml_features")
-TOP_PLAYERS_CSV = season_config.output_path("top_players_hnl")
-SPECIALIST_CSV = season_config.output_path("specialist_rankings_hnl")
-CLUSTERS_CSV = season_config.output_path("player_clusters")
-FIGURES_DIR = season_config.figures_dir()
-REPORT_MD = season_config.scouting_report_path()
-CLUSTER_PROFILES_MD = season_config.cluster_profiles_report_path()
-
-# Rankings page: dashboard label -> (source CSV, category value in that CSV).
-RANKING_CATEGORIES = {
-    "Top overall outfield players": (TOP_PLAYERS_CSV, "best_overall"),
-    "Best U23 / young talents": (TOP_PLAYERS_CSV, "best_young_talents"),
-    "Best attackers": (TOP_PLAYERS_CSV, "best_attackers"),
-    "Best creators": (SPECIALIST_CSV, "best_creators"),
-    "Best defenders": (TOP_PLAYERS_CSV, "best_defenders"),
-    "Best dribblers": (SPECIALIST_CSV, "best_dribblers"),
-    "Best passers": (SPECIALIST_CSV, "best_passers"),
-    "Best progressive midfielders": (SPECIALIST_CSV, "best_progressive_midfielders"),
-    "Best passer defenders": (SPECIALIST_CSV, "best_passer_defenders"),
-    "Best goalkeepers": (TOP_PLAYERS_CSV, "best_goalkeepers"),
-}
+# suffix -> display label, in the order shown in the season selector.
+SEASON_LABELS = {"2025_2026": "2025/2026", "2024_2025": "2024/2025"}
+SUFFIX_BY_LABEL = {label: suffix for suffix, label in SEASON_LABELS.items()}
+MULTI_SEASON_LABEL = "Multi-season development"
 
 # Player profile page: example similarity chart saved for a handful of
 # players by visualization.py - shown as a bonus if the searched player
-# happens to be one of them.
-EXAMPLE_SIMILARITY_CHARTS = {
-    "Dion Beljo": "player_similarity_attacker_example.png",
-    "Ismaël Bennacer": "player_similarity_midfielder_example.png",
-    "Sergi Domínguez": "player_similarity_defender_example.png",
+# happens to be one of them. Keyed by the season-agnostic example_slot
+# (see ml_models.EXAMPLE_SIMILARITY_QUERIES) - the *player* filling each
+# slot can differ between seasons, so this is resolved per-season from the
+# similarity CSV in _example_chart_for_player rather than a fixed
+# name -> filename mapping.
+SIMILARITY_EXAMPLE_SLOTS = {
+    "midfielder_example": "player_similarity_midfielder_example.png",
+    "attacker_example": "player_similarity_attacker_example.png",
+    "defender_example": "player_similarity_defender_example.png",
 }
 
 
@@ -72,8 +68,49 @@ def missing_file_error(path):
     )
 
 
-def render_overview():
-    st.title(f"HNL {season_config.SEASON_NAME} Scouting Dashboard")
+def ranking_categories(suffix):
+    """Rankings page: dashboard label -> (source CSV, category value in
+    that CSV) - rebuilt per season since the CSV paths are season-suffixed."""
+    top_players_csv = season_config.output_path("top_players_hnl", suffix=suffix)
+    specialist_csv = season_config.output_path("specialist_rankings_hnl", suffix=suffix)
+    return {
+        "Top overall outfield players": (top_players_csv, "best_overall"),
+        "Best U23 / young talents": (top_players_csv, "best_young_talents"),
+        "Best attackers": (top_players_csv, "best_attackers"),
+        "Best creators": (specialist_csv, "best_creators"),
+        "Best defenders": (top_players_csv, "best_defenders"),
+        "Best dribblers": (specialist_csv, "best_dribblers"),
+        "Best passers": (specialist_csv, "best_passers"),
+        "Best progressive midfielders": (specialist_csv, "best_progressive_midfielders"),
+        "Best passer defenders": (specialist_csv, "best_passer_defenders"),
+        "Best goalkeepers": (top_players_csv, "best_goalkeepers"),
+    }
+
+
+def _example_chart_for_player(suffix, player_name):
+    """If `player_name` is this season's query player for one of the three
+    similarity example slots (see ml_models.EXAMPLE_SIMILARITY_QUERIES),
+    returns that chart's filename - otherwise None. Data-driven per season
+    (reads the similarity CSV) rather than a fixed player list, since the
+    actual query player for each slot can be a data-driven fallback
+    (ml_models.resolve_example_player) and therefore differ between
+    seasons."""
+    similarity_path = season_config.output_path("player_similarity_results", suffix=suffix)
+    similarity_df = load_csv(similarity_path)
+    if similarity_df is None or "example_slot" not in similarity_df.columns:
+        return None
+    for slot, filename in SIMILARITY_EXAMPLE_SLOTS.items():
+        match = similarity_df[
+            (similarity_df["example_slot"] == slot) & (similarity_df["query_player"] == player_name)
+        ]
+        if not match.empty:
+            return filename
+    return None
+
+
+def render_overview(suffix):
+    season_name = SEASON_LABELS[suffix]
+    st.title(f"HNL {season_name} Scouting Dashboard")
     st.markdown(
         "A read-only view over the Football-Analytics-2026 scouting pipeline: "
         "`SportMonks API -> raw data -> cleaned data -> feature engineering -> "
@@ -83,9 +120,10 @@ def render_overview():
         "the pipeline already produced."
     )
 
-    scored_df = load_csv(SCORED_CSV)
+    scored_path = season_config.processed_path("hnl_player_scored", suffix=suffix)
+    scored_df = load_csv(scored_path)
     if scored_df is None:
-        missing_file_error(SCORED_CSV)
+        missing_file_error(scored_path)
         return
 
     eligible = scored_df[scored_df["minutes"] >= MIN_MINUTES_FOR_SCORES]
@@ -96,18 +134,20 @@ def render_overview():
     col3.metric(f"Eligible players (>={MIN_MINUTES_FOR_SCORES} min)", len(eligible))
 
     st.subheader("Full scouting report")
-    if os.path.exists(REPORT_MD):
+    report_path = season_config.scouting_report_path(suffix=suffix)
+    if os.path.exists(report_path):
         with st.expander("Open the full Markdown scouting report"):
-            with open(REPORT_MD, encoding="utf-8") as f:
+            with open(report_path, encoding="utf-8") as f:
                 st.markdown(f.read())
     else:
-        missing_file_error(REPORT_MD)
+        missing_file_error(report_path)
 
 
-def render_rankings():
+def render_rankings(suffix):
     st.title("Player Rankings")
-    label = st.selectbox("Category", list(RANKING_CATEGORIES))
-    path, category = RANKING_CATEGORIES[label]
+    categories = ranking_categories(suffix)
+    label = st.selectbox("Category", list(categories))
+    path, category = categories[label]
 
     df = load_csv(path)
     if df is None:
@@ -121,12 +161,13 @@ def render_rankings():
     st.dataframe(subset.drop(columns=["category"]), hide_index=True, use_container_width=True)
 
 
-def render_player_profile():
+def render_player_profile(suffix):
     st.title("Player Search / Profile")
 
-    scored_df = load_csv(SCORED_CSV)
+    scored_path = season_config.processed_path("hnl_player_scored", suffix=suffix)
+    scored_df = load_csv(scored_path)
     if scored_df is None:
-        missing_file_error(SCORED_CSV)
+        missing_file_error(scored_path)
         return
 
     query = st.text_input("Search player name")
@@ -174,20 +215,21 @@ def render_player_profile():
     if per90:
         st.dataframe(pd.DataFrame([per90]), hide_index=True, use_container_width=True)
 
-    chart_file = EXAMPLE_SIMILARITY_CHARTS.get(player_name)
+    chart_file = _example_chart_for_player(suffix, player_name)
     if chart_file:
-        chart_path = os.path.join(FIGURES_DIR, chart_file)
+        chart_path = os.path.join(season_config.figures_dir(suffix), chart_file)
         if os.path.exists(chart_path):
             st.subheader("Similarity chart (example)")
             st.image(chart_path)
 
 
-def render_similarity_search():
+def render_similarity_search(suffix):
     st.title("Similarity Search")
 
-    ml_df = load_csv(ML_FEATURES_CSV)
+    ml_features_path = season_config.processed_path("hnl_ml_features", suffix=suffix)
+    ml_df = load_csv(ml_features_path)
     if ml_df is None:
-        missing_file_error(ML_FEATURES_CSV)
+        missing_file_error(ml_features_path)
         return
 
     player_name = st.selectbox("Player", sorted(ml_df["player_name"].unique()))
@@ -219,12 +261,13 @@ def render_similarity_search():
     st.dataframe(results, hide_index=True, use_container_width=True)
 
 
-def render_replacement_scouting():
+def render_replacement_scouting(suffix):
     st.title("Replacement Scouting")
 
-    ml_df = load_csv(ML_FEATURES_CSV)
+    ml_features_path = season_config.processed_path("hnl_ml_features", suffix=suffix)
+    ml_df = load_csv(ml_features_path)
     if ml_df is None:
-        missing_file_error(ML_FEATURES_CSV)
+        missing_file_error(ml_features_path)
         return
 
     with st.expander("What is replacement_score?"):
@@ -273,12 +316,13 @@ def render_replacement_scouting():
     st.dataframe(results, hide_index=True, use_container_width=True)
 
 
-def render_hidden_gems():
+def render_hidden_gems(suffix):
     st.title("Hidden Gems")
 
-    top_players_df = load_csv(TOP_PLAYERS_CSV)
+    top_players_path = season_config.output_path("top_players_hnl", suffix=suffix)
+    top_players_df = load_csv(top_players_path)
     if top_players_df is None:
-        missing_file_error(TOP_PLAYERS_CSV)
+        missing_file_error(top_players_path)
         return
 
     st.markdown(
@@ -301,12 +345,13 @@ def render_hidden_gems():
                 st.dataframe(subset.drop(columns=["category"]), hide_index=True, use_container_width=True)
 
 
-def render_clusters():
+def render_clusters(suffix):
     st.title("Player Clusters")
 
-    clusters_df = load_csv(CLUSTERS_CSV)
+    clusters_path = season_config.output_path("player_clusters", suffix=suffix)
+    clusters_df = load_csv(clusters_path)
     if clusters_df is None:
-        missing_file_error(CLUSTERS_CSV)
+        missing_file_error(clusters_path)
         return
 
     st.markdown(
@@ -330,40 +375,176 @@ def render_clusters():
     )
     st.dataframe(subset, hide_index=True, use_container_width=True)
 
-    if os.path.exists(CLUSTER_PROFILES_MD):
+    cluster_profiles_path = season_config.cluster_profiles_report_path(suffix=suffix)
+    if os.path.exists(cluster_profiles_path):
         with st.expander("Full cluster profiles report (plain-English style descriptions)"):
-            with open(CLUSTER_PROFILES_MD, encoding="utf-8") as f:
+            with open(cluster_profiles_path, encoding="utf-8") as f:
                 st.markdown(f.read())
     else:
-        st.info(f"Cluster profiles report not found at `{CLUSTER_PROFILES_MD}`.")
+        st.info(f"Cluster profiles report not found at `{cluster_profiles_path}`.")
 
 
-def render_charts_report():
+def render_charts_report(suffix):
     st.title("Charts & Report")
 
-    if not os.path.isdir(FIGURES_DIR):
-        st.error(f"**Missing folder:** `{FIGURES_DIR}`. Run `python main.py` to generate charts.")
+    figures_dir = season_config.figures_dir(suffix)
+    if not os.path.isdir(figures_dir):
+        st.error(f"**Missing folder:** `{figures_dir}`. Run `python main.py` to generate charts.")
     else:
-        chart_files = sorted(f for f in os.listdir(FIGURES_DIR) if f.lower().endswith(".png"))
+        chart_files = sorted(f for f in os.listdir(figures_dir) if f.lower().endswith(".png"))
         if not chart_files:
-            st.warning(f"No charts found in `{FIGURES_DIR}`.")
+            st.warning(f"No charts found in `{figures_dir}`.")
         else:
             cols = st.columns(2)
             for i, chart_file in enumerate(chart_files):
                 with cols[i % 2]:
-                    st.image(os.path.join(FIGURES_DIR, chart_file), caption=chart_file)
+                    st.image(os.path.join(figures_dir, chart_file), caption=chart_file)
 
     st.divider()
     st.subheader("Full scouting report")
-    if os.path.exists(REPORT_MD):
+    report_path = season_config.scouting_report_path(suffix=suffix)
+    if os.path.exists(report_path):
         with st.expander("Open the full Markdown scouting report", expanded=False):
-            with open(REPORT_MD, encoding="utf-8") as f:
+            with open(report_path, encoding="utf-8") as f:
                 st.markdown(f.read())
     else:
-        missing_file_error(REPORT_MD)
+        missing_file_error(report_path)
 
 
-PAGES = {
+def _development_metric(row, column, decimals=None):
+    value = row.get(column)
+    if pd.isna(value):
+        return "n/a"
+    return f"{value:.{decimals}f}" if decimals is not None else str(value)
+
+
+def render_player_development():
+    base_suffix = player_development.BASE_SEASON_SUFFIX
+    target_suffix = player_development.TARGET_SEASON_SUFFIX
+    base_label = player_development.BASE_SEASON_NAME
+    target_label = player_development.TARGET_SEASON_NAME
+
+    st.title(f"Player Development ({base_label} -> {target_label})")
+    st.markdown(
+        "Players matched by `player_id` across both seasons - scores are "
+        "**season-relative, not an absolute rating** (see the full report "
+        "below for methodology and limitations)."
+    )
+
+    dev_df = load_csv(player_development.DEVELOPMENT_OUTPUT_CSV_PATH)
+    if dev_df is None:
+        missing_file_error(player_development.DEVELOPMENT_OUTPUT_CSV_PATH)
+        return
+
+    matched = len(dev_df)
+    team_changes = int(dev_df["changed_team"].sum()) if "changed_team" in dev_df.columns else 0
+    improved = int(dev_df["improved_overall"].sum()) if "improved_overall" in dev_df.columns else 0
+    declined = (
+        int((dev_df["overall_score_change"] < 0).sum())
+        if "overall_score_change" in dev_df.columns else 0
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Players matched", matched)
+    col2.metric("Changed team", team_changes)
+    col3.metric(f"Improved in {target_label}", improved)
+    col4.metric(f"Declined in {target_label}", declined)
+
+    tabs = st.tabs([
+        "Biggest improvers", "Biggest decliners", "Young improvers",
+        "Changed-team improvers", "Hidden gems who improved", "Player search",
+    ])
+
+    with tabs[0]:
+        st.dataframe(
+            player_development.rank_biggest_improvers(dev_df, top_n=20),
+            hide_index=True, use_container_width=True,
+        )
+
+    with tabs[1]:
+        st.dataframe(
+            player_development.rank_biggest_decliners(dev_df, top_n=20),
+            hide_index=True, use_container_width=True,
+        )
+
+    with tabs[2]:
+        young_improvers = player_development.rank_young_improvers(dev_df, top_n=20)
+        if young_improvers.empty:
+            st.warning("No young improvers found.")
+        else:
+            st.dataframe(young_improvers, hide_index=True, use_container_width=True)
+
+    with tabs[3]:
+        changed_team_improvers = player_development.rank_changed_team_improvers(dev_df, top_n=20)
+        if changed_team_improvers.empty:
+            st.warning("No changed-team improvers found.")
+        else:
+            st.dataframe(changed_team_improvers, hide_index=True, use_container_width=True)
+
+    with tabs[4]:
+        hidden_gem_ids = player_development.load_hidden_gem_ids(base_suffix)
+        hidden_gems_improved = player_development.rank_hidden_gems_who_improved(
+            dev_df, hidden_gem_ids, top_n=20,
+        )
+        if hidden_gems_improved.empty:
+            st.warning("No hidden gems from last season also improved this season.")
+        else:
+            st.dataframe(hidden_gems_improved, hide_index=True, use_container_width=True)
+
+    with tabs[5]:
+        query = st.text_input("Search player name", key="dev_query")
+        if not query:
+            st.info("Type a player name to search.")
+        else:
+            matches = dev_df[dev_df["player_name"].str.contains(query, case=False, na=False)]
+            if matches.empty:
+                st.warning(f"No players found matching '{query}'.")
+            else:
+                player_name = st.selectbox("Select player", sorted(matches["player_name"].unique()))
+                row = dev_df[dev_df["player_name"] == player_name].iloc[0]
+
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown(f"**HNL {base_label}**")
+                    st.metric("Team", _development_metric(row, f"team_{base_suffix}"))
+                    st.metric("Position", _development_metric(row, f"position_{base_suffix}"))
+                    st.metric("Age", _development_metric(row, f"age_{base_suffix}", decimals=0))
+                    st.metric("Minutes", _development_metric(row, f"minutes_{base_suffix}", decimals=0))
+                    st.metric("Overall score", _development_metric(row, f"overall_score_{base_suffix}", decimals=1))
+                with col_b:
+                    st.markdown(f"**HNL {target_label}**")
+                    st.metric("Team", _development_metric(row, f"team_{target_suffix}"))
+                    st.metric("Position", _development_metric(row, f"position_{target_suffix}"))
+                    st.metric("Age", _development_metric(row, f"age_{target_suffix}", decimals=0))
+                    st.metric("Minutes", _development_metric(row, f"minutes_{target_suffix}", decimals=0))
+                    st.metric("Overall score", _development_metric(row, f"overall_score_{target_suffix}", decimals=1))
+
+                st.subheader("Score changes")
+                change_cols = [c for c in dev_df.columns if c.endswith("_change")]
+                changes = {c: row[c] for c in change_cols if pd.notna(row.get(c))}
+                if changes:
+                    st.dataframe(pd.DataFrame([changes]), hide_index=True, use_container_width=True)
+
+                st.subheader("Flags")
+                flag_cols = [
+                    "changed_team", "same_position", "minutes_increased",
+                    "young_player", "improved_overall", "improved_specialist_score",
+                ]
+                flags = {c: row[c] for c in flag_cols if c in dev_df.columns}
+                if flags:
+                    st.dataframe(pd.DataFrame([flags]), hide_index=True, use_container_width=True)
+
+    st.divider()
+    st.subheader("Full multi-season development report")
+    if os.path.exists(player_development.DEVELOPMENT_REPORT_PATH):
+        with st.expander("Open the full report"):
+            with open(player_development.DEVELOPMENT_REPORT_PATH, encoding="utf-8") as f:
+                st.markdown(f.read())
+    else:
+        missing_file_error(player_development.DEVELOPMENT_REPORT_PATH)
+
+
+SINGLE_SEASON_PAGES = {
     "Overview": render_overview,
     "Player rankings": render_rankings,
     "Player search / profile": render_player_profile,
@@ -376,9 +557,20 @@ PAGES = {
 
 
 def main():
-    st.sidebar.title(f"HNL {season_config.SEASON_NAME} Scouting")
-    page = st.sidebar.radio("Section", list(PAGES))
-    PAGES[page]()
+    st.sidebar.title("HNL Scouting Dashboard")
+    season_choice = st.sidebar.selectbox(
+        "Season", list(SEASON_LABELS.values()) + [MULTI_SEASON_LABEL],
+    )
+
+    if season_choice == MULTI_SEASON_LABEL:
+        render_player_development()
+        return
+
+    suffix = SUFFIX_BY_LABEL[season_choice]
+    st.sidebar.caption(f"Showing HNL {season_choice} data")
+
+    page = st.sidebar.radio("Section", list(SINGLE_SEASON_PAGES))
+    SINGLE_SEASON_PAGES[page](suffix)
 
 
 if __name__ == "__main__":
