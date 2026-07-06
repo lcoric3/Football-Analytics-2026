@@ -3,12 +3,13 @@ Stage 8: Markdown scouting report.
 
 Football data science logic:
 This module computes nothing new about players - it only reads whatever
-scouting_scores.py, analysis.py, ml_models.py, and visualization.py already
-produced (the scored/ranked/similarity CSVs and the PNGs in
-reports/figures/), formats it, and explains it in prose. That's a
-deliberate choice: a report that recomputes its own numbers can drift from
-the data it's supposed to summarize; a report that only reads already-saved
-files always matches the last pipeline run exactly.
+scouting_scores.py, analysis.py, ml_models.py, replacement_scouting.py, and
+visualization.py already produced (the scored/ranked/similarity/cluster/
+replacement CSVs and the PNGs in reports/figures/), formats it, and
+explains it in prose. That's a deliberate choice: a report that recomputes
+its own numbers can drift from the data it's supposed to summarize; a
+report that only reads already-saved files always matches the last
+pipeline run exactly.
 """
 import logging
 import os
@@ -26,13 +27,12 @@ SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
 TOP_PLAYERS_CSV_PATH = "data/output/top_players_hnl_2025_2026.csv"
 SPECIALIST_CSV_PATH = "data/output/specialist_rankings_hnl_2025_2026.csv"
 SIMILARITY_CSV_PATH = "data/output/player_similarity_results.csv"
+REPLACEMENT_CSV_PATH = "data/output/replacement_targets.csv"
+CLUSTERS_CSV_PATH = "data/output/player_clusters.csv"
+CLUSTER_PROFILES_REPORT_FILE = "player_cluster_profiles.md"
 REPORT_PATH = "reports/hnl_2025_2026_scouting_report.md"
 
 TOP_N = 10
-# Traditionally the three best-resourced, most heavily scouted HNL clubs -
-# used only to spot players who perform well *without* that platform, for
-# the "underrated" section. Not a judgment on any other club.
-BIG_CLUBS = {"Dinamo Zagreb", "Hajduk Split", "Rijeka"}
 
 
 def _fmt(value, decimals=None):
@@ -61,41 +61,87 @@ def _category_table(rankings_df, category, columns, headers, decimals=None, top_
 
 
 def _find_underrated(scored_df, top_n=8):
-    """Players with a high overall_score who play outside the three
-    traditionally best-resourced clubs - a simple, reproducible proxy for
-    "good player, low visibility" rather than a subjective pick.
+    """Players with the highest underrated_score (Stage B2) - overall_score
+    plus a capped bonus for outperforming their own teammates and a capped
+    bonus for playing at a squad below the league's average team (see
+    scouting_scores.py for the exact formula). Replaces the project's
+    earlier fixed "exclude the three big clubs" list with a computed,
+    reproducible team-context signal.
 
-    Outfield only: overall_score isn't a meaningful measure of goalkeeping
-    quality (Section 6), so a goalkeeper landing here on that metric would
-    be an artifact, not a real "underrated" signal."""
+    Outfield only: overall_score (and therefore underrated_score) isn't a
+    meaningful measure of goalkeeping quality (Section 6), so a goalkeeper
+    landing here would be an artifact, not a real "underrated" signal."""
     outfield = scored_df[scored_df["position"].astype(str).str.lower() != "goalkeeper"]
     eligible = outfield[outfield["minutes"] >= MIN_MINUTES_FOR_SCORES]
-    non_big_club = eligible[~eligible["team_name"].isin(BIG_CLUBS)]
     return (
-        non_big_club.dropna(subset=["overall_score"])
-        .sort_values("overall_score", ascending=False)
+        eligible.dropna(subset=["underrated_score"])
+        .sort_values("underrated_score", ascending=False)
         .head(top_n)
     )
 
 
-def _similarity_section(similarity_df, query_player, role, chart_file, top_n=TOP_N):
+def _similarity_section(similarity_df, query_player, role, chart_file=None, top_n=TOP_N):
     subset = similarity_df[
         (similarity_df["query_player"] == query_player) & (similarity_df["role"] == role)
     ].sort_values("rank").head(top_n)
+    if subset.empty:
+        return f"*No similarity example available for {query_player} (role: `{role}`).*\n"
+    filters = subset["filters"].iloc[0] if "filters" in subset.columns else ""
+    filters_note = f" - filters: `{filters}`" if isinstance(filters, str) and filters else ""
     table = _md_table(
         subset, ["rank", "player_name", "team_name", "position", "similarity"],
         ["Rank", "Player", "Team", "Position", "Similarity"], decimals={"similarity": 2},
     )
+    chart = f"\n![Players similar to {query_player}]({chart_file})\n" if chart_file else ""
     return (
-        f"**{query_player} - role: `{role}`**\n\n"
-        f"{table}\n\n"
-        f"![Players similar to {query_player}]({chart_file})\n\n"
+        f"**{query_player} - role: `{role}`**{filters_note}\n\n"
+        f"{table}\n"
+        f"{chart}\n"
         f"*The chart shows cosine similarity (0-1) for each match - see "
-        f"section 18 for what that number means.*\n"
+        f"section 19 for what that number means.*\n"
     )
 
 
-def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_rows, deduped_rows):
+def _replacement_section(replacement_df, query_player, top_n=TOP_N):
+    subset = replacement_df[replacement_df["query_player"] == query_player].sort_values("rank").head(top_n)
+    if subset.empty:
+        return f"*No replacement-target example available for {query_player}.*\n"
+    role = subset["role"].iloc[0]
+    table = _md_table(
+        subset,
+        ["rank", "player_name", "team_name", "position", "age", "similarity",
+         "age_potential_score", "underrated_score", "younger_bonus", "replacement_score"],
+        ["Rank", "Player", "Team", "Position", "Age", "Similarity", "Potential",
+         "Underrated", "Younger Bonus", "Replacement Score"],
+        decimals={"similarity": 2, "age_potential_score": 1, "underrated_score": 1,
+                  "younger_bonus": 1, "replacement_score": 1, "age": 0},
+    )
+    return f"**Replacement targets for {query_player}** (role: `{role}`)\n\n{table}\n"
+
+
+def _cluster_summary_table(clusters_df):
+    rows = []
+    for cluster_id, group in clusters_df.groupby("cluster_id"):
+        top_player = group.sort_values("quality_score", ascending=False).iloc[0]
+        rows.append({
+            "cluster_id": int(cluster_id),
+            "cluster_name": group["cluster_name"].iloc[0],
+            "players": len(group),
+            "avg_age": group["age"].mean(),
+            "top_player": f"{top_player['player_name']} ({top_player['team_name']})",
+        })
+    summary_df = pd.DataFrame(rows).sort_values("cluster_id")
+    return _md_table(
+        summary_df, ["cluster_id", "cluster_name", "players", "avg_age", "top_player"],
+        ["Cluster", "Name", "Players", "Avg Age", "Top Player (by quality_score)"],
+        decimals={"avg_age": 1},
+    )
+
+
+def build_report(
+    scored_df, top_players_df, specialist_df, similarity_df, replacement_df, clusters_df,
+    raw_rows, deduped_rows,
+):
     eligible_count = int((scored_df["minutes"] >= MIN_MINUTES_FOR_SCORES).sum())
     duplicates_removed = raw_rows - deduped_rows
     today = date.today().isoformat()
@@ -109,11 +155,13 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
     L.append(
         "This project turns raw SportMonks player statistics for the Croatian "
         "1. HNL 2025/2026 season into a full scouting data pipeline: cleaned "
-        "data, per-90 features, explainable scouting scores, position- and "
-        "role-specific rankings, and a player-similarity search. Every "
-        "number in this report is read directly from the CSVs the pipeline "
-        "produces (`data/processed/`, `data/output/`) - nothing here is "
-        "hand-picked.\n"
+        "data, per-90 features, explainable scouting scores, age-aware "
+        "potential scoring, team-context/underrated scoring, position- and "
+        "role-specific rankings, a filterable player-similarity search, "
+        "statistical replacement-target shortlists, and named player "
+        "clusters. Every number in this report is read directly from the "
+        "CSVs the pipeline produces (`data/processed/`, `data/output/`) - "
+        "nothing here is hand-picked.\n"
     )
 
     # 2. Data source --------------------------------------------------------
@@ -146,7 +194,7 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "the JSON, only 15 were mapped to columns before Stage 1. Dribbles, "
         "key passes, crosses, long balls, aerials won, clearances, and "
         "fouls drawn were sitting in the data unused - Stage 1 mapped 11 of "
-        "them (see Section 5 and Sections 11-15).\n"
+        "them (see Section 5 and Sections 12-16).\n"
     )
 
     # 4. Why per-90 ----------------------------------------------------------
@@ -206,7 +254,7 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "`overall_score` blends attacking, creative, and defensive "
         "contribution (each judged against same-position peers) plus a "
         "small discipline factor. Because each ingredient is now "
-        "position-aware (Section 19 explains why), this list is no longer "
+        "position-aware (Section 22 explains why), this list is no longer "
         "structurally tilted toward all-round midfielders - a specialist "
         "can top it by excelling relative to their own role's peers.\n"
     )
@@ -223,7 +271,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "\n![Top 15 U23 players](figures/top_u23_players.png)\n\n"
         "Same `overall_score` ranking, filtered to age 23 and under. Useful "
         "for spotting resale/development value rather than just current "
-        "output.\n"
+        "output - see Section 8 for a lens that also weighs age and "
+        "playing-time reliability, not just current output.\n"
     )
 
     L.append(
@@ -249,8 +298,64 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "placement and quality data this API doesn't expose here.\n"
     )
 
-    # 8. Best attackers -------------------------------------------------
-    L.append("## 8. Best Attackers\n")
+    # 8. Best young talents & age-aware potential (Stage B1) ---------------
+    L.append("## 8. Best Young Talents & Age-Aware Potential\n")
+    L.append(
+        "`overall_score` answers \"who's producing well right now\" - it "
+        "says nothing about whether a player is young enough to still be "
+        "improving, or whether their output is backed by real, proven "
+        "playing time. `age_potential_score` (Stage B1) adds that lens on "
+        "top, as a simple, fully additive formula (every point is "
+        "traceable to one of three ingredients, not an opaque blend):\n\n"
+        "```\n"
+        "age_potential_score = overall_score + age_bonus + reliability_bonus\n"
+        "```\n\n"
+        "- **`age_bonus`**: +2.0 points for every year younger than 23 "
+        "(this project's U23 cutoff), capped at 6 years below it - so a "
+        "17-year-old and a 15-year-old both get the same capped maximum "
+        "of +12, rather than an ever-larger reward the younger a player "
+        "gets.\n"
+        "- **`reliability_bonus`**: a percentile rank of minutes played "
+        "(0-100) among scoring-eligible players, scaled down to at most "
+        "+8 points - rewards a young player who's already earning real "
+        "first-team minutes, not just a promising cameo.\n\n"
+        "Like `overall_score`, this is an **outfield-only** lens - "
+        "goalkeepers are excluded from every ranking below for the same "
+        "reason they're excluded from Section 6.\n"
+    )
+    L.append("### Best Young Talents (age <= 23)\n")
+    L.append(_category_table(
+        top_players_df, "best_young_talents",
+        ["rank", "player_name", "team_name", "position", "age", "overall_score",
+         "age_bonus", "reliability_bonus", "age_potential_score"],
+        ["Rank", "Player", "Team", "Position", "Age", "Overall", "Age Bonus", "Reliability", "Potential"],
+        decimals={"overall_score": 1, "age_bonus": 1, "reliability_bonus": 1,
+                  "age_potential_score": 1, "age": 0},
+    ))
+    L.append(
+        "\n**`best_u23_players_by_potential`** (saved alongside "
+        "`best_young_talents` in `data/output/top_players_hnl_2025_2026.csv`) "
+        "is the exact same U23 pool and sort order as the table above - it's "
+        "kept as a second category label specifically so it sits next to "
+        "`best_u23` (Section 7) in the output, making the \"current output\" "
+        "vs. \"potential-adjusted\" comparison for the same age bracket "
+        "explicit.\n"
+    )
+    L.append("\n### Best U21 Players (age <= 21, by potential)\n")
+    L.append(_category_table(
+        top_players_df, "best_u21_players",
+        ["rank", "player_name", "team_name", "position", "age", "overall_score", "age_potential_score"],
+        ["Rank", "Player", "Team", "Position", "Age", "Overall", "Potential"],
+        decimals={"overall_score": 1, "age_potential_score": 1, "age": 0},
+    ))
+    L.append(
+        "\nA stricter age bracket than U23 - useful for identifying "
+        "development-squad-eligible talent specifically, not just "
+        "\"young by transfer-market standards\".\n"
+    )
+
+    # 9. Best attackers -------------------------------------------------
+    L.append("## 9. Best Attackers\n")
     L.append(_category_table(
         top_players_df, "best_attackers",
         ["rank", "player_name", "team_name", "position", "age", "attacking_score"],
@@ -265,8 +370,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "isn't buried under a regular starter with more minutes.\n"
     )
 
-    # 9. Best creators -------------------------------------------------------
-    L.append("## 9. Best Creators\n")
+    # 10. Best creators -------------------------------------------------------
+    L.append("## 10. Best Creators\n")
     L.append(_category_table(
         specialist_df, "best_creators",
         ["rank", "player_name", "team_name", "position", "age", "creative_score"],
@@ -281,8 +386,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "creative attacker or full-back can appear here too.\n"
     )
 
-    # 10. Best defenders --------------------------------------------------
-    L.append("## 10. Best Defenders\n")
+    # 11. Best defenders --------------------------------------------------
+    L.append("## 11. Best Defenders\n")
     L.append(_category_table(
         top_players_df, "best_defenders",
         ["rank", "player_name", "team_name", "position", "age", "defensive_score"],
@@ -293,12 +398,12 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "\n`defensive_score` (tackles, interceptions, duel success) is "
         "judged against other defenders, so it measures 'best defender "
         "relative to defenders', not 'most tackles in the league' - see "
-        "`best_duel_defenders` (Section 13) for the raw, pool-wide version "
+        "`best_duel_defenders` (Section 14) for the raw, pool-wide version "
         "of ball-winning ability.\n"
     )
 
-    # 11. Best dribblers ---------------------------------------------------
-    L.append("## 11. Best Dribblers\n")
+    # 12. Best dribblers ---------------------------------------------------
+    L.append("## 12. Best Dribblers\n")
     L.append(_category_table(
         specialist_df, "best_dribblers",
         ["rank", "player_name", "team_name", "position", "successful_dribbles_per90", "dribble_success_rate"],
@@ -314,8 +419,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "trying often *and* succeeding often.\n"
     )
 
-    # 12. Best passers --------------------------------------------------
-    L.append("## 12. Best Passers\n")
+    # 13. Best passers --------------------------------------------------
+    L.append("## 13. Best Passers\n")
     L.append(_category_table(
         specialist_df, "best_passers",
         ["rank", "player_name", "team_name", "position", "passes_per90", "key_passes_per90", "pass_accuracy"],
@@ -332,8 +437,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "passes that actually lead to a shot).\n"
     )
 
-    # 13. Best duel defenders -----------------------------------------------
-    L.append("## 13. Best Duel Defenders\n")
+    # 14. Best duel defenders -----------------------------------------------
+    L.append("## 14. Best Duel Defenders\n")
     L.append(_category_table(
         specialist_df, "best_duel_defenders",
         ["rank", "player_name", "team_name", "position", "tackles_per90", "interceptions_per90", "aerials_won_per90"],
@@ -349,8 +454,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "(position-filtered) would miss.\n"
     )
 
-    # 14. Best progressive midfielders --------------------------------------
-    L.append("## 14. Best Progressive Midfielders\n")
+    # 15. Best progressive midfielders --------------------------------------
+    L.append("## 15. Best Progressive Midfielders\n")
     L.append(_category_table(
         specialist_df, "best_progressive_midfielders",
         ["rank", "player_name", "team_name", "age", "progressive_midfielder_score", "key_passes_per90"],
@@ -367,8 +472,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "involvement', not literal progressive-pass counts.\n"
     )
 
-    # 15. Best passer/ball-playing defenders --------------------------------
-    L.append("## 15. Best Passer Defenders / Ball-Playing Defenders\n")
+    # 16. Best passer/ball-playing defenders --------------------------------
+    L.append("## 16. Best Passer Defenders / Ball-Playing Defenders\n")
     L.append(_category_table(
         specialist_df, "best_passer_defenders",
         ["rank", "player_name", "team_name", "age", "passer_defender_score", "passes_per90", "pass_accuracy"],
@@ -393,7 +498,7 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
     L.append(
         "### Comparing the specialists\n\n"
         "![Specialist score comparison](figures/specialist_score_comparison.png)\n\n"
-        "A snapshot of the five new specialist scores (Sections 11-15) "
+        "A snapshot of the five specialist scores (Sections 12-16) "
         "side by side for a handful of players pulled from the top of each "
         "category. Notice how uneven each player's bars are - that's the "
         "point of having five separate scores instead of one: a player can "
@@ -401,42 +506,123 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "a single blended score would hide that.\n"
     )
 
-    # 16. Underrated players -------------------------------------------
-    L.append("## 16. Underrated Players\n")
+    # 17. Underrated players, hidden gems & small-club standouts (Stage B2) --
+    L.append("## 17. Underrated Players, Hidden Gems & Small-Club Standouts\n")
+    L.append(
+        "Stage B2 adds team context on top of `overall_score`: "
+        "`team_average_score` (a team's own mean `overall_score` among its "
+        "eligible outfield players, goalkeepers excluded) and "
+        "`score_above_team_average` (`overall_score - team_average_score` - "
+        "a literal gap, positive means outperforming your own teammates). "
+        "`underrated_score` then blends two capped bonuses onto "
+        "`overall_score`:\n\n"
+        "```\n"
+        "underrated_score = overall_score + standout_bonus + weak_team_bonus\n"
+        "```\n\n"
+        "- **`standout_bonus`**: only the *positive* part of "
+        "`score_above_team_average` counts (underperforming your own team "
+        "isn't 'underrated'), capped before a 0.5 weight.\n"
+        "- **`weak_team_bonus`**: `league_average_team_score - "
+        "team_average_score`, clipped to >= 0 and capped before a 0.5 "
+        "weight - `league_average_team_score` is the mean of every team's "
+        "own average (one vote per team, not per player, so one big squad "
+        "can't skew the baseline). This is the computed, reproducible "
+        "replacement for this project's earlier fixed 'exclude the three "
+        "big clubs' list.\n\n"
+    )
+    L.append("### Underrated Players\n")
     underrated = _find_underrated(scored_df)
     L.append(_md_table(
-        underrated, ["player_name", "team_name", "position", "age", "overall_score"],
-        ["Player", "Team", "Position", "Age", "Overall"], decimals={"overall_score": 1, "age": 0},
+        underrated,
+        ["player_name", "team_name", "position", "age", "overall_score",
+         "standout_bonus", "weak_team_bonus", "underrated_score"],
+        ["Player", "Team", "Position", "Age", "Overall", "Standout", "Weak-Team", "Underrated"],
+        decimals={"overall_score": 1, "age": 0, "standout_bonus": 1,
+                  "weak_team_bonus": 1, "underrated_score": 1},
     ))
     L.append(
-        f"\n'Underrated' here means a simple, reproducible proxy: highest "
-        f"`overall_score` among eligible players **outside** "
-        f"{', '.join(sorted(BIG_CLUBS))} - the three clubs that get the "
-        f"most scouting attention in Croatian football. It's not a claim "
-        f"that these players are better than everyone at the big clubs, "
-        f"just that they're producing well relative to how much visibility "
-        f"their club typically gets.\n"
+        "\n**Important: this table can still include big-club players.** "
+        "`underrated_players` only requires outperforming your *own* "
+        "teammates, regardless of how strong the squad around you is - so "
+        "a Dinamo Zagreb or Hajduk Split player who clearly outshines their "
+        "(already strong) teammates can legitimately appear here (note "
+        "several do, below). It is **not** a small-club-only list - for "
+        "that, see the two stricter views below.\n"
+    )
+    L.append("\n### Hidden Gems\n")
+    L.append(
+        "Requires *both* signals at once: outperforms their own team "
+        "(`standout_bonus > 0`) **and** plays for a squad below the "
+        "league's average team (`weak_team_bonus > 0`). This is the "
+        "stricter, small-club-focused view.\n\n"
+    )
+    L.append(_category_table(
+        top_players_df, "hidden_gems",
+        ["rank", "player_name", "team_name", "position", "age", "overall_score",
+         "standout_bonus", "weak_team_bonus", "underrated_score"],
+        ["Rank", "Player", "Team", "Position", "Age", "Overall", "Standout", "Weak-Team", "Underrated"],
+        decimals={"overall_score": 1, "standout_bonus": 1, "weak_team_bonus": 1,
+                  "underrated_score": 1, "age": 0},
+        top_n=8,
+    ))
+    L.append("\n### Small-Club Standouts\n")
+    L.append(
+        "Requires only the team-context signal (`weak_team_bonus > 0`), "
+        "sorted by plain `overall_score` rather than the blended score - "
+        "\"who's the best individual performer at a smaller club\", "
+        "regardless of the gap to their own teammates.\n\n"
+    )
+    L.append(_category_table(
+        top_players_df, "small_club_standouts",
+        ["rank", "player_name", "team_name", "position", "age", "overall_score", "weak_team_bonus"],
+        ["Rank", "Player", "Team", "Position", "Age", "Overall", "Weak-Team Bonus"],
+        decimals={"overall_score": 1, "weak_team_bonus": 1, "age": 0},
+        top_n=8,
+    ))
+    L.append(
+        "\nNone of these three views are a market-value or 'true team "
+        "strength' model - they're reproducible statistical proxies for "
+        "visibility, not scouting verdicts (see Section 24).\n"
     )
 
-    # 17. Similarity examples --------------------------------------------
-    L.append("## 17. Player Similarity Examples\n")
-    L.append(_similarity_section(similarity_df, "Ismaël Bennacer", "overall", "figures/player_similarity_bennacer.png"))
-    L.append(_similarity_section(similarity_df, "Sergi Domínguez", "passer_defender", "figures/player_similarity_dominguez.png"))
-    L.append(_similarity_section(similarity_df, "Dion Beljo", "attacker", "figures/player_similarity_beljo.png"))
+    # 18. Similarity examples (Stage B3: filters) ---------------------------
+    L.append("## 18. Player Similarity Examples\n")
+    L.append(
+        "Stage B3 added optional filters to the similarity search - applied "
+        "to *candidates* only, after cosine similarity is computed against "
+        "the full eligible pool: `same_position_only` (exact position "
+        "match), `same_team_exclude` (drop the query player's own club), "
+        "`min_minutes` (a stricter reliability floor), and `max_age` (e.g. "
+        "for 'similar young players'). The examples below show a mix of "
+        "filtered and unfiltered searches.\n\n"
+    )
+    L.append(_similarity_section(
+        similarity_df, "Ismaël Bennacer", "midfielder",
+        "figures/player_similarity_bennacer.png",
+    ))
+    L.append(_similarity_section(
+        similarity_df, "Sergi Domínguez", "passer_defender",
+        "figures/player_similarity_dominguez.png",
+    ))
+    L.append(_similarity_section(
+        similarity_df, "Dion Beljo", "attacker",
+        "figures/player_similarity_beljo.png",
+    ))
+    L.append(_similarity_section(similarity_df, "Adriano Jagusic", "overall"))
     L.append(
         "![Profile comparison: Bennacer, Beljo, Domínguez](figures/role_radar_examples.png)\n\n"
-        "The radar chart puts all three query players on the same five "
+        "The radar chart puts three query players on the same five "
         "axes (attacking/creative/defensive/dribbling/passing scores). It "
         "makes each player's *shape* obvious at a glance: Beljo spikes hard "
         "on attacking and barely registers elsewhere (a specialist "
         "profile), while Bennacer and Domínguez are more balanced across "
         "several dimensions - which is exactly why role-based similarity "
-        "search (Section 18) matters more than a single 'overall' "
+        "search (Section 19) matters more than a single 'overall' "
         "comparison.\n"
     )
 
-    # 18. Cosine similarity explanation --------------------------------
-    L.append("## 18. How Cosine Similarity Works (in Scouting Terms)\n")
+    # 19. Cosine similarity explanation --------------------------------
+    L.append("## 19. How Cosine Similarity Works (in Scouting Terms)\n")
     L.append(
         "Picture each player as a list of numbers - their per-90 rates and "
         "ratios for a chosen role (e.g. for `attacker`: "
@@ -458,13 +644,87 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "striker to a centre-back on `shots_per90` is meaningless - the "
         "centre-back will always look like an outlier on stats that aren't "
         "part of their job. Each role (`attacker`, `passer`, "
-        "`duel_defender`, ...) restricts the comparison to only the stats "
-        "relevant to that role, so 'similar' means 'plays a similar game', "
-        "not 'happens to share a few numbers by coincidence'.\n"
+        "`duel_defender`, `goalkeeper`, ...) restricts the comparison to "
+        "only the stats relevant to that role, so 'similar' means 'plays a "
+        "similar game', not 'happens to share a few numbers by "
+        "coincidence'.\n"
     )
 
-    # 19. Additional charts ------------------------------------------------
-    L.append("## 19. Additional Charts\n")
+    # 20. Replacement scouting (Stage B4) -----------------------------------
+    L.append("## 20. Replacement Scouting\n")
+    L.append(
+        "**This is a statistical shortlist, not a final transfer "
+        "recommendation.** `src/replacement_scouting.py` builds on the "
+        "similarity search above: given a departing player, it re-ranks "
+        "the filtered candidate pool by `replacement_score`, a weighted "
+        "sum of four signals plus one small tie-breaker:\n\n"
+        "```\n"
+        "replacement_score = 0.4 * (similarity * 100)\n"
+        "                   + 0.3 * age_potential_score\n"
+        "                   + 0.2 * underrated_score\n"
+        "                   + 0.1 * reliability_percentile\n"
+        "                   + younger_bonus (+5 if candidate is younger than the departing player)\n"
+        "```\n\n"
+        "- **similarity** (highest weight) - is the candidate actually the "
+        "same *kind* of player? A statistically dissimilar candidate isn't "
+        "a real replacement no matter how good their other numbers are.\n"
+        "- **`age_potential_score`** (Section 8) - good now, with runway to "
+        "keep improving.\n"
+        "- **`underrated_score`** (Section 17) - a nod toward value, not "
+        "just quality.\n"
+        "- **`reliability_percentile`** - minutes rank *within this "
+        "specific candidate pool* (not the whole league) - the smallest "
+        "weight, used only as a tie-breaker.\n\n"
+        "By default, `same_position_only=True` and `same_team_exclude=True` "
+        "(a replacement is normally sought at the same position, outside "
+        "the player's own squad), and the role defaults to whatever "
+        "matches the departing player's own position.\n\n"
+        "**It says nothing about video-scouted technique, tactical fit, "
+        "injury history, character, or transfer feasibility** (fee, "
+        "release clause, wages, contract length) - treat it as a "
+        "reproducible first-pass shortlist for a human scout to start "
+        "from, not a conclusion.\n"
+    )
+    L.append(_replacement_section(replacement_df, "Dion Beljo"))
+    L.append(_replacement_section(replacement_df, "Ismaël Bennacer"))
+    L.append(_replacement_section(replacement_df, "Sergi Domínguez"))
+    L.append(_replacement_section(replacement_df, "Gabriel Vidovic"))
+
+    # 21. Player cluster profiles (Stage B5) --------------------------------
+    L.append("## 21. Player Cluster Profiles\n")
+    L.append(
+        "**Clustering groups players by statistical profile, not by "
+        "absolute quality.** KMeans has no notion of 'good' or 'bad' - it "
+        "only finds players whose per-90 rates sit close together in "
+        "feature space, the same underlying idea as the cosine-similarity "
+        "search (Section 19) but grouping many players instead of "
+        "comparing two. An elite player and a modest one can land in the "
+        "same cluster if their rates have a similar *shape* - a cluster "
+        "describes a **playing style**, not a tier.\n\n"
+        "Goalkeepers are clustered separately from outfield players (their "
+        "near-zero outfield stats would otherwise just form one arbitrary "
+        "'goalkeeper' cluster): 8 clusters for outfield players, 2 for "
+        "goalkeepers. Each cluster is named by comparing its own average "
+        "stats against the population average (a z-score per feature), "
+        "then matching that profile against a set of predefined archetype "
+        "signatures - if no archetype clears a confidence bar, the cluster "
+        "keeps a neutral `balanced profile` label instead of a forced one. "
+        "**Cluster names describe playing style, not literal position** - "
+        "clustering never looks at the `position` column, so an archetype "
+        "like 'ball-playing defenders' only keeps that name if the cluster "
+        "is actually made up mostly of defenders; otherwise it falls back "
+        "to a neutral statistical name (e.g. 'defensive distributors') "
+        "instead of a forced position claim.\n\n"
+        f"**Full per-cluster profiles** (player count, average age/minutes, "
+        f"a plain-English playing-style description, and top players) are "
+        f"in [`{CLUSTER_PROFILES_REPORT_FILE}`]({CLUSTER_PROFILES_REPORT_FILE}) - "
+        f"summary below:\n"
+    )
+    L.append(_cluster_summary_table(clusters_df))
+    L.append("")
+
+    # 22. Additional charts ------------------------------------------------
+    L.append("## 22. Additional Charts\n")
     L.append(
         "![Age vs overall score](figures/age_vs_overall_score.png)\n\n"
         "Every eligible **outfield** player's age against their "
@@ -505,11 +765,61 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "(450+ minutes, goalkeepers excluded) per "
         "club, with the eligible squad size shown in parentheses. This is a "
         "rough proxy for squad strength/depth, not a form table - it says "
-        "nothing about results, only about individual statistical output.\n"
+        "nothing about results, only about individual statistical output. "
+        "It's also the same data `team_average_score` (Section 17) is "
+        "built from, per club.\n"
     )
 
-    # 20. Limitations -----------------------------------------------------
-    L.append("## 20. Limitations\n")
+    # 23. Methodology summary ------------------------------------------------
+    L.append("## 23. Methodology Summary\n")
+    L.append(
+        "A quick-reference recap of every formula introduced since the "
+        "original pipeline - each is explained in full where it's first "
+        "used above; this section just collects them in one place.\n\n"
+        "**Percentile scores (original pipeline)** - `attacking_score`, "
+        "`creative_score`, `defensive_score`, `dribbling_score`, "
+        "`passing_score`, `duel_defending_score`, "
+        "`progressive_midfielder_score`, `passer_defender_score`, "
+        "`goalkeeper_score`: each is an average of percentile ranks (0-100) "
+        "on a handful of per-90/ratio stats, so raw scales never distort "
+        "the blend. `overall_score = 0.3*attacking + 0.3*creative + "
+        "0.3*defensive + 0.1*discipline` (Section 6).\n\n"
+        "**`age_potential_score` (Section 8)** - "
+        "`overall_score + age_bonus + reliability_bonus`. `age_bonus` = "
+        "+2.0/year younger than 23, capped at +12 (6 years). "
+        "`reliability_bonus` = percentile rank of minutes, capped at +8.\n\n"
+        "**`underrated_score` (Section 17)** - "
+        "`overall_score + standout_bonus + weak_team_bonus`. "
+        "`standout_bonus` = the positive part of `overall_score - "
+        "team_average_score`, capped, at 0.5 weight. `weak_team_bonus` = "
+        "the positive part of `league_average_team_score - "
+        "team_average_score`, capped, at 0.5 weight. `hidden_gems` "
+        "requires both bonuses > 0; `small_club_standouts` requires only "
+        "`weak_team_bonus` > 0 and sorts by raw `overall_score`.\n\n"
+        "**Similarity search filters (Section 18)** - `same_position_only`, "
+        "`same_team_exclude`, `min_minutes`, `max_age`: applied to "
+        "candidates only, *after* cosine similarity is computed against "
+        "the full pool, so filtering never changes what 'similar' means "
+        "for the players who qualify.\n\n"
+        "**`replacement_score` (Section 20)** - "
+        "`0.4*(similarity*100) + 0.3*age_potential_score + "
+        "0.2*underrated_score + 0.1*reliability_percentile + "
+        "younger_bonus`. `reliability_percentile` is computed *within the "
+        "candidate pool for that specific search*, not the whole league. "
+        "`younger_bonus` is a flat +5, not a percentage weight.\n\n"
+        "**Player clustering (Section 21)** - KMeans on per-90/ratio "
+        "features (outfield and goalkeepers clustered separately). Cluster "
+        "names come from comparing each cluster's own feature averages "
+        "against the population average (a z-score per feature), matched "
+        "against predefined archetype signatures; unmatched clusters "
+        "(below a 0.5 confidence bar) get a neutral `balanced profile` "
+        "label, and position-implying names are demoted to a neutral "
+        "alternative unless that position is an outright majority of the "
+        "cluster.\n"
+    )
+
+    # 24. Limitations -----------------------------------------------------
+    L.append("## 24. Limitations\n")
     L.append(
         "- **Goalkeepers are excluded from general outfield rankings "
         "because they require a separate goalkeeper-specific model.** "
@@ -530,7 +840,30 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "position-aware, because it averages across attacking/creative/"
         "defensive contribution. A player who is elite at exactly one thing "
         "and does nothing else will usually rank higher on a role-specific "
-        "score (Sections 8-15) than on `overall_score`.\n"
+        "score (Sections 9-16) than on `overall_score`.\n"
+        "- **`age_potential_score`, `underrated_score`, and "
+        "`replacement_score` are explainable proxies, not ground truth.** "
+        "They combine already-approximate scores with simple, capped "
+        "bonuses - useful for a reproducible first-pass shortlist, not a "
+        "substitute for scouting judgment on potential, morale, injury "
+        "history, or genuine market value.\n"
+        "- **`underrated_score`/`hidden_gems`/`small_club_standouts` are "
+        "team-context proxies, not a market-value or true-team-strength "
+        "model.** `team_average_score` only reflects this season's "
+        "statistical output of a team's *eligible outfield* players - it "
+        "says nothing about squad budget, wage bill, or league position.\n"
+        "- **Similarity search and replacement scouting do not replace "
+        "video scouting.** They surface statistically comparable players "
+        "as a first-pass shortlist; a human scout still has to watch the "
+        "games. `replacement_score` in particular says nothing about "
+        "transfer feasibility (fee, release clause, wages, contract "
+        "length).\n"
+        "- **Player clusters describe playing style, not quality or "
+        "literal position.** An elite and a modest player can share a "
+        "cluster if their per-90 rates have a similar shape; a cluster's "
+        "archetype name is demoted to a neutral one if the cluster's "
+        "actual position makeup doesn't back up a position-specific claim "
+        "(Section 21).\n"
         "- **Role-specific rankings are better for scouting than one "
         "global ranking.** `best_overall`/`best_u23` are a reasonable "
         "'who's good in general' view, but the specialist rankings "
@@ -539,8 +872,8 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "U23 versions) answer much more specific scouting questions and "
         "should usually be preferred over the single overall list.\n"
         "- **This model ranks and compares statistical output - it does "
-        "not evaluate talent, potential, tactical fit, or injury/character "
-        "risk.** It's a strong first-pass scouting/shortlisting tool, not a "
+        "not evaluate talent, tactical fit, or injury/character risk.** "
+        "It's a strong first-pass scouting/shortlisting tool, not a "
         "replacement for video scouting or human judgment.\n"
         "- **A `�` character in a player's name (e.g. in a terminal) is a "
         "Windows console display quirk, not a data bug** - the underlying "
@@ -548,31 +881,35 @@ def build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_ro
         "names like `Varaždin` and `Mejía` are stored correctly.\n"
     )
 
-    # 21. Next improvements -------------------------------------------------
-    L.append("## 21. Next Improvements\n")
+    # 25. Next improvements -------------------------------------------------
+    L.append("## 25. Next Improvements\n")
     L.append(
-        "- **Same-position-only similarity option** - currently `overall` "
-        "similarity can match a player to someone in a different position "
-        "if their statistical shape lines up (see Bennacer's #1 match in "
-        "Section 17); an optional same-position filter would give a "
-        "stricter 'like-for-like' comparison when that's what's wanted.\n"
         "- **Better position groups if SportMonks exposes detailed "
         "positions** for this competition/plan - would let "
         "`best_passer_defenders` distinguish centre-backs from full-backs, "
-        "and would sharpen every position-aware score.\n"
-        "- **Add market value or age-based potential** as an extra lens "
-        "alongside current output, so scouting rankings can separate "
-        "'productive now' from 'likely to keep improving'.\n"
+        "and would sharpen every position-aware score and cluster archetype.\n"
+        "- **Add real market value** as an extra lens alongside "
+        "`underrated_score`, so 'underrated relative to teammates' can be "
+        "checked against 'underrated relative to actual transfer value'.\n"
         "- **Improve formulas with more seasons of history** - a single "
         "HNL season limits how much the scores and the optional rating/"
         "goals prediction models can be trusted; multiple seasons would "
-        "support more robust percentile baselines and a meaningful "
-        "supervised model.\n"
+        "support more robust percentile baselines, more stable cluster "
+        "archetypes, and a meaningful supervised model.\n"
         "- **Compare HNL players against other leagues** - all scores here "
         "are relative to the HNL player pool only, so a HNL-wide top score "
         "says nothing about how that player would rank in a stronger "
         "league; cross-league benchmarking would need a shared statistical "
         "baseline across competitions.\n"
+        "- **Refine cluster archetype signatures with feedback** - the "
+        "z-score signature thresholds (Section 21) are a first pass; "
+        "reviewing a season's worth of cluster assignments against known "
+        "player profiles would help tune which features best separate "
+        "each archetype.\n"
+        "- **A Streamlit dashboard** (planned, not yet built) - filters by "
+        "team/age/position/minutes, a player profile view, specialist "
+        "rankings, similarity search, replacement scouting, cluster "
+        "profiles, charts, and an in-app report viewer.\n"
     )
 
     return "\n".join(L) + "\n"
@@ -586,6 +923,8 @@ def run():
         "top players": TOP_PLAYERS_CSV_PATH,
         "specialist rankings": SPECIALIST_CSV_PATH,
         "similarity results": SIMILARITY_CSV_PATH,
+        "replacement targets": REPLACEMENT_CSV_PATH,
+        "player clusters": CLUSTERS_CSV_PATH,
     }
     for label, path in required.items():
         if not os.path.exists(path):
@@ -595,11 +934,16 @@ def run():
     top_players_df = pd.read_csv(TOP_PLAYERS_CSV_PATH)
     specialist_df = pd.read_csv(SPECIALIST_CSV_PATH)
     similarity_df = pd.read_csv(SIMILARITY_CSV_PATH)
+    replacement_df = pd.read_csv(REPLACEMENT_CSV_PATH)
+    clusters_df = pd.read_csv(CLUSTERS_CSV_PATH)
 
     raw_rows = clean_data.get_raw_row_count()
     deduped_rows = len(pd.read_csv(CLEAN_CSV_PATH))
 
-    report = build_report(scored_df, top_players_df, specialist_df, similarity_df, raw_rows, deduped_rows)
+    report = build_report(
+        scored_df, top_players_df, specialist_df, similarity_df, replacement_df, clusters_df,
+        raw_rows, deduped_rows,
+    )
 
     os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)
     with open(REPORT_PATH, "w", encoding="utf-8") as f:

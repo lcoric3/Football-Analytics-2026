@@ -54,6 +54,29 @@ Goalkeeping is a different job that needs different inputs (saves, clean
 sheets, goals conceded, penalties saved) - see goalkeeper_score below.
 analysis.py excludes goalkeepers from best_overall/best_u23 and ranks
 them separately as best_goalkeepers, by goalkeeper_score instead.
+
+age_potential_score (Stage B1):
+A young-player scouting lens on top of overall_score - see the formula's
+own comment further down for the full breakdown. In short: it's
+overall_score plus a small, capped bonus for being young (age_bonus) and
+a small bonus for already earning real first-team minutes at that age
+(reliability_bonus), so it stays additive and explainable rather than
+another opaque percentile blend. Like overall_score, it inherits the
+"outfield only" caveat - it's not a meaningful lens for goalkeepers.
+
+Team-context scoring and underrated_score (Stage B2):
+overall_score is computed against the whole HNL player pool, so it never
+asks "compared to their own teammates". team_average_score (a team's own
+mean overall_score, outfield eligible players only) and
+score_above_team_average (a player's gap above/below that) add that
+context. underrated_score then rewards two things on top of raw quality:
+outperforming your own team, and playing for a squad whose average
+outfield output sits below the league's average team - a reproducible
+proxy for "good player, low visibility", replacing the old fixed
+BIG_CLUBS exclusion list in report.py. See the formula's own comment
+further down for the exact weights/caps. This is a statistical proxy, not
+a market-value or "true team strength" model - see the report's
+limitations section.
 """
 import logging
 import os
@@ -68,6 +91,32 @@ SCORED_CSV_PATH = "data/processed/hnl_player_scored_2025_2026.csv"
 
 # ~5 full matches - below this, per-90 rates are considered too noisy to score.
 MIN_MINUTES_FOR_SCORES = 450
+
+# --- age_potential_score constants (Stage B1) -----------------------------
+# Age below which a player counts as "young" for age_bonus - matches
+# analysis.py's U23_AGE_LIMIT, the "young player" cutoff used everywhere
+# else in this project.
+AGE_POTENTIAL_AGE_CUTOFF = 23
+# age_bonus grows by this many points for every year younger than the cutoff.
+AGE_BONUS_PER_YEAR = 2.0
+# ...but the bonus is capped at this many years below the cutoff, so a
+# 15-year-old doesn't get an implausibly bigger bonus than a 17-year-old -
+# both hit the same ceiling (age 17 and under all score the max bonus).
+AGE_BONUS_CAP_YEARS = 6
+# reliability_bonus - a percentile rank of minutes played, scaled down to
+# at most this many points, so it can nudge age_potential_score without
+# ever swamping the underlying overall_score.
+RELIABILITY_BONUS_MAX = 8.0
+
+# --- underrated_score constants (Stage B2) --------------------------------
+# Caps (in overall_score points, before weighting) on how large a single
+# team-context gap is allowed to grow before its bonus stops increasing.
+STANDOUT_BONUS_CAP = 30
+WEAK_TEAM_BONUS_CAP = 30
+# Both bonuses are weighted equally - neither "outperforms their own team"
+# nor "plays for a weaker team" alone should be worth more than the other.
+STANDOUT_BONUS_WEIGHT = 0.5
+WEAK_TEAM_BONUS_WEIGHT = 0.5
 
 
 def _percentile(series, eligible, group=None):
@@ -230,6 +279,87 @@ def add_scores(df):
         + 0.3 * df["defensive_score"]
         + 0.1 * df["discipline_score"]
     )
+
+    # age_potential_score (Stage B1): a young-player scouting lens.
+    # overall_score alone treats a promising 19-year-old the same as a
+    # 30-year-old journeyman posting an identical score today - it says
+    # nothing about future upside. Rather than build yet another opaque
+    # percentile blend, age_potential_score stays a simple, fully traceable
+    # sum of three explainable ingredients:
+    #
+    #   age_potential_score = overall_score + age_bonus + reliability_bonus
+    #
+    # age_bonus: rewards being younger than AGE_POTENTIAL_AGE_CUTOFF (23),
+    # tapering linearly and capped at AGE_BONUS_CAP_YEARS years below the
+    # cutoff (see the constants above) - e.g. with the defaults, a 20-year-old
+    # gets +6, a 17-year-old (or younger) gets the capped max of +12, and a
+    # 23-year-old or older gets +0.
+    years_below_cutoff = (AGE_POTENTIAL_AGE_CUTOFF - df["age"]).clip(
+        lower=0, upper=AGE_BONUS_CAP_YEARS
+    )
+    df["age_bonus"] = years_below_cutoff * AGE_BONUS_PER_YEAR
+
+    # reliability_bonus: a young player who already plays regular first-team
+    # minutes is a safer scouting bet than one with the same rates from only
+    # a handful of cameos - rewarded as a percentile rank of `minutes` among
+    # all scoring-eligible players (pool-wide - playing-time trust isn't a
+    # positional skill), scaled down to at most RELIABILITY_BONUS_MAX points.
+    minutes_percentile = _percentile(df["minutes"], eligible)
+    df["reliability_bonus"] = minutes_percentile / 100 * RELIABILITY_BONUS_MAX
+
+    df["age_potential_score"] = df["overall_score"] + df["age_bonus"] + df["reliability_bonus"]
+
+    # --- team-context scoring: team_average_score, score_above_team_average,
+    # --- underrated_score (Stage B2) ---------------------------------------
+    # overall_score alone says nothing about context: the same score means
+    # more from a player carrying a weak side than from a player surrounded
+    # by a stacked XI. This block adds three plain, comment-explained
+    # columns - never a hidden model of "true" team strength or market
+    # value (see the report's caveat for that limitation).
+    #
+    # team_average_score: the mean overall_score of a team's own eligible
+    # *outfield* players (goalkeepers excluded - same reasoning as
+    # best_overall/best_u23 in analysis.py: overall_score isn't a meaningful
+    # measure of goalkeeping quality, so mixing keepers in would distort a
+    # team's average for no good reason). This is a simple proxy for "how
+    # strong is this squad's individual outfield output" - not a form table,
+    # not a results-based measure.
+    outfield_eligible = eligible & (position != "Goalkeeper")
+    team_average_score = (
+        df.loc[outfield_eligible].groupby("team_name")["overall_score"].mean()
+    )
+    df["team_average_score"] = df["team_name"].map(team_average_score)
+
+    # score_above_team_average: how far this player's own overall_score sits
+    # above (or below) their team's average - a literal gap, not a
+    # percentile. Positive means "outperforms their own teammates".
+    df["score_above_team_average"] = df["overall_score"] - df["team_average_score"]
+
+    # underrated_score = overall_score + standout_bonus + weak_team_bonus.
+    # Two capped, equally-weighted bonuses on top of raw quality - a genuine
+    # "hidden gem" still has to be a good player first (overall_score), not
+    # merely someone who happens to play for a weak team:
+    #
+    # standout_bonus: only the *positive* part of score_above_team_average
+    # counts (underperforming your own team isn't "underrated"), capped at
+    # STANDOUT_BONUS_CAP points before weighting so one extreme gap can't
+    # dominate the score by itself.
+    standout_gap = df["score_above_team_average"].clip(lower=0, upper=STANDOUT_BONUS_CAP)
+    df["standout_bonus"] = standout_gap * STANDOUT_BONUS_WEIGHT
+
+    # weak_team_bonus: rewards playing for a squad whose average outfield
+    # output sits below the *league's* average team (computed here, per
+    # team, then averaged across teams so one big squad with many
+    # just-eligible players can't outweigh a small squad with a few elite
+    # ones) - a reproducible, data-driven stand-in for "surrounded by less
+    # individual talent", instead of a fixed list of "big clubs".
+    league_average_team_score = team_average_score.mean()
+    weak_team_gap = (league_average_team_score - df["team_average_score"]).clip(
+        lower=0, upper=WEAK_TEAM_BONUS_CAP
+    )
+    df["weak_team_bonus"] = weak_team_gap * WEAK_TEAM_BONUS_WEIGHT
+
+    df["underrated_score"] = df["overall_score"] + df["standout_bonus"] + df["weak_team_bonus"]
 
     return df
 

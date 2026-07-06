@@ -4,7 +4,7 @@ Football-Analytics-2026 pipeline orchestrator.
 Runs the full HNL 2025/2026 pipeline in order:
 SportMonks API -> raw data -> cleaned data -> feature engineering
 -> scouting scores -> analysis rankings -> visualizations -> ML dataset
--> Markdown report
+-> replacement-target shortlists -> Markdown report
 
 Each stage lives in its own src/ module and reads the previous stage's
 output file, so this file just calls them in sequence.
@@ -21,6 +21,7 @@ from src import scouting_scores
 from src import analysis
 from src import visualization
 from src import ml_models
+from src import replacement_scouting
 from src import report
 
 
@@ -35,28 +36,31 @@ def main():
         )
         sys.exit(1)
 
-    print("Step 1/8: Fetching player statistics from SportMonks API...")
+    print("Step 1/9: Fetching player statistics from SportMonks API...")
     fetch_data.run()
 
-    print("Step 2/8: Cleaning raw data...")
+    print("Step 2/9: Cleaning raw data...")
     clean_data.run()
 
-    print("Step 3/8: Engineering per-90 and ratio features...")
+    print("Step 3/9: Engineering per-90 and ratio features...")
     feature_engineering.run()
 
-    print("Step 4/8: Computing scouting scores...")
+    print("Step 4/9: Computing scouting scores...")
     scouting_scores.run()
 
-    print("Step 5/8: Building ranking analysis...")
+    print("Step 5/9: Building ranking analysis...")
     analysis.run()
 
-    print("Step 6/8: Generating charts...")
+    print("Step 6/9: Generating charts...")
     visualization.run()
 
-    print("Step 7/8: Building ML-ready dataset and running ML models...")
+    print("Step 7/9: Building ML-ready dataset and running ML models...")
     ml_models.run()
 
-    print("Step 8/8: Writing the Markdown scouting report...")
+    print("Step 8/9: Building replacement-target shortlists...")
+    replacement_scouting.run()
+
+    print("Step 9/9: Writing the Markdown scouting report...")
     report.run()
 
     print("Pipeline complete.")

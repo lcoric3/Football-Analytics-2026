@@ -1,31 +1,41 @@
-query_player,role,rank,player_name,team_name,position,similarity
-Ismaël Bennacer,overall,1,Matteo Pérez Vinlöf,Dinamo Zagreb,Defender,0.7916529808436383
-Ismaël Bennacer,overall,2,Adriano Jagusic,Slaven Koprivnica,Midfielder,0.6523307037325092
-Ismaël Bennacer,overall,3,Ante Orec,Rijeka,Defender,0.5937720635907449
-Ismaël Bennacer,overall,4,Marko Pajac,Lokomotiva Zagreb,Defender,0.5936892483173664
-Ismaël Bennacer,overall,5,Ljuban Crepulja,Slaven Koprivnica,Midfielder,0.5912658552186971
-Ismaël Bennacer,overall,6,Domagoj Antolic,Lokomotiva Zagreb,Midfielder,0.58297377808999
-Ismaël Bennacer,overall,7,Abdoulie Sanyang,Hajduk Split,Attacker,0.550028800436235
-Ismaël Bennacer,overall,8,Adrion Pajaziti,Hajduk Split,Midfielder,0.5346955904434361
-Ismaël Bennacer,overall,9,Robin González,Vukovar,Midfielder,0.5344762573192552
-Ismaël Bennacer,overall,10,Hugo Guillamón,Hajduk Split,Midfielder,0.5119363010380901
-Sergi Domínguez,passer_defender,1,Niko Galesic,Dinamo Zagreb,Defender,0.9736738278999045
-Sergi Domínguez,passer_defender,2,Stjepan Radeljic,Rijeka,Defender,0.9644823586819153
-Sergi Domínguez,passer_defender,3,Tino Jukic,Lokomotiva Zagreb,Defender,0.9516994295845346
-Sergi Domínguez,passer_defender,4,Ante Majstorovic,Rijeka,Defender,0.9158481050327588
-Sergi Domínguez,passer_defender,5,Hrvoje Babec,Osijek,Midfielder,0.9135901402242065
-Sergi Domínguez,passer_defender,6,Hugo Guillamón,Hajduk Split,Midfielder,0.9084752322638309
-Sergi Domínguez,passer_defender,7,Dominik Kovacic,Slaven Koprivnica,Defender,0.9022819235481172
-Sergi Domínguez,passer_defender,8,Ville Koski,Istra 1961,Defender,0.892414945572436
-Sergi Domínguez,passer_defender,9,Dario Maresic,Istra 1961,Defender,0.8758804363546491
-Sergi Domínguez,passer_defender,10,Ivan Cvijanovic,Osijek,Defender,0.8681532851605346
-Dion Beljo,attacker,1,Sandro Kulenovic,Dinamo Zagreb,Attacker,0.9958595018830747
-Dion Beljo,attacker,2,Michele Sego,Hajduk Split,Attacker,0.9943579736831795
-Dion Beljo,attacker,3,Gabriel Vidovic,Dinamo Zagreb,Attacker,0.9864388017410036
-Dion Beljo,attacker,4,Smail Prevljak,Istra 1961,Attacker,0.9845309936916539
-Dion Beljo,attacker,5,Monsef Bakrar,Dinamo Zagreb,Attacker,0.9818513335869137
-Dion Beljo,attacker,6,Jakov Puljic,Vukovar,Attacker,0.9802187283295273
-Dion Beljo,attacker,7,Marko Soldo,Dinamo Zagreb,Midfielder,0.9790893900866182
-Dion Beljo,attacker,8,Salim Fago Lawal,Istra 1961,Attacker,0.9786082816257372
-Dion Beljo,attacker,9,Ivan Mamut,Varaždin,Attacker,0.9766362767053389
-Dion Beljo,attacker,10,Toni Fruk,Rijeka,Midfielder,0.9660216974092427
+query_player,role,filters,rank,player_name,team_name,position,similarity
+Ismaël Bennacer,midfielder,same_position_only=True,1,David Mejía,Vukovar,Midfielder,0.8713321935327527
+Ismaël Bennacer,midfielder,same_position_only=True,2,Iker Pozo,Gorica,Midfielder,0.8435409638287216
+Ismaël Bennacer,midfielder,same_position_only=True,3,Adriano Jagusic,Slaven Koprivnica,Midfielder,0.8225304539259453
+Ismaël Bennacer,midfielder,same_position_only=True,4,Marko Soldo,Dinamo Zagreb,Midfielder,0.7501126497197116
+Ismaël Bennacer,midfielder,same_position_only=True,5,Domagoj Antolic,Lokomotiva Zagreb,Midfielder,0.7343899743859363
+Ismaël Bennacer,midfielder,same_position_only=True,6,Tomislav Duvnjak,Varaždin,Midfielder,0.7342877721790715
+Ismaël Bennacer,midfielder,same_position_only=True,7,Adrion Pajaziti,Hajduk Split,Midfielder,0.7150175451273558
+Ismaël Bennacer,midfielder,same_position_only=True,8,Leon Bošnjak,Slaven Koprivnica,Midfielder,0.6834725782175589
+Ismaël Bennacer,midfielder,same_position_only=True,9,Ljuban Crepulja,Slaven Koprivnica,Midfielder,0.6534656636783069
+Ismaël Bennacer,midfielder,same_position_only=True,10,Josip Misic,Dinamo Zagreb,Midfielder,0.6107622654909092
+Dion Beljo,attacker,,1,Sandro Kulenovic,Dinamo Zagreb,Attacker,0.9958595018830747
+Dion Beljo,attacker,,2,Michele Sego,Hajduk Split,Attacker,0.9943579736831795
+Dion Beljo,attacker,,3,Gabriel Vidovic,Dinamo Zagreb,Attacker,0.9864388017410036
+Dion Beljo,attacker,,4,Smail Prevljak,Istra 1961,Attacker,0.9845309936916539
+Dion Beljo,attacker,,5,Monsef Bakrar,Dinamo Zagreb,Attacker,0.9818513335869137
+Dion Beljo,attacker,,6,Jakov Puljic,Vukovar,Attacker,0.9802187283295273
+Dion Beljo,attacker,,7,Marko Soldo,Dinamo Zagreb,Midfielder,0.9790893900866182
+Dion Beljo,attacker,,8,Salim Fago Lawal,Istra 1961,Attacker,0.9786082816257372
+Dion Beljo,attacker,,9,Ivan Mamut,Varaždin,Attacker,0.9766362767053389
+Dion Beljo,attacker,,10,Toni Fruk,Rijeka,Midfielder,0.9660216974092427
+Sergi Domínguez,passer_defender,,1,Niko Galesic,Dinamo Zagreb,Defender,0.9736738278999045
+Sergi Domínguez,passer_defender,,2,Stjepan Radeljic,Rijeka,Defender,0.9644823586819153
+Sergi Domínguez,passer_defender,,3,Tino Jukic,Lokomotiva Zagreb,Defender,0.9516994295845346
+Sergi Domínguez,passer_defender,,4,Ante Majstorovic,Rijeka,Defender,0.9158481050327588
+Sergi Domínguez,passer_defender,,5,Hrvoje Babec,Osijek,Midfielder,0.9135901402242065
+Sergi Domínguez,passer_defender,,6,Hugo Guillamón,Hajduk Split,Midfielder,0.9084752322638309
+Sergi Domínguez,passer_defender,,7,Dominik Kovacic,Slaven Koprivnica,Defender,0.9022819235481172
+Sergi Domínguez,passer_defender,,8,Ville Koski,Istra 1961,Defender,0.892414945572436
+Sergi Domínguez,passer_defender,,9,Dario Maresic,Istra 1961,Defender,0.8758804363546491
+Sergi Domínguez,passer_defender,,10,Ivan Cvijanovic,Osijek,Defender,0.8681532851605346
+Adriano Jagusic,overall,max_age<=23,1,Nail Omerovic,Osijek,Attacker,0.8025783642330367
+Adriano Jagusic,overall,max_age<=23,2,Luka Stojkovic,Dinamo Zagreb,Midfielder,0.7714114027216623
+Adriano Jagusic,overall,max_age<=23,3,Roko Brajkovic,Hajduk Split,Attacker,0.7225436944213214
+Adriano Jagusic,overall,max_age<=23,4,Gabriel Vidovic,Dinamo Zagreb,Attacker,0.7158480835169475
+Adriano Jagusic,overall,max_age<=23,5,Iker Almena,Hajduk Split,Attacker,0.6988558248639082
+Adriano Jagusic,overall,max_age<=23,6,Fabijan Krivak,Lokomotiva Zagreb,Midfielder,0.6475142893392863
+Adriano Jagusic,overall,max_age<=23,7,Salim Fago Lawal,Istra 1961,Attacker,0.6265558125097792
+Adriano Jagusic,overall,max_age<=23,8,Mateo Lisica,Dinamo Zagreb,Attacker,0.5703388519952688
+Adriano Jagusic,overall,max_age<=23,9,Rokas Pukstas,Hajduk Split,Midfielder,0.4891327740033374
+Adriano Jagusic,overall,max_age<=23,10,Samuele Vignato,Rijeka,Midfielder,0.46964543814988985

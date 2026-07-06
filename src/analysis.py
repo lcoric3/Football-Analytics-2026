@@ -27,6 +27,7 @@ SPECIALIST_OUTPUT_CSV_PATH = "data/output/specialist_rankings_hnl_2025_2026.csv"
 
 TOP_N = 15
 U23_AGE_LIMIT = 23
+U21_AGE_LIMIT = 21
 
 # SportMonks squad data sometimes lists non-playing staff (e.g. a manager)
 # alongside players, with a "position" like "Coach". Those aren't players,
@@ -51,6 +52,14 @@ OUTPUT_COLUMNS = [
     "progressive_midfielder_score", "passer_defender_score",
     # Stage 4 fix: goalkeeper_score, for the separate best_goalkeepers ranking.
     "goalkeeper_score",
+    # Stage B1: age_potential_score and its two components, for the
+    # young-talent rankings below (best_young_talents, best_u21_players,
+    # best_u23_players_by_potential).
+    "age_bonus", "reliability_bonus", "age_potential_score",
+    # Stage B2: team-context scoring and its two bonuses, for the
+    # underrated_players/hidden_gems/small_club_standouts rankings below.
+    "team_average_score", "score_above_team_average",
+    "standout_bonus", "weak_team_bonus", "underrated_score",
 ]
 
 # Columns shown for every row of specialist_rankings_hnl_2025_2026.csv - a
@@ -96,6 +105,21 @@ def build_rankings(df):
         u23 = outfield[outfield["age"] <= U23_AGE_LIMIT]
         tables.append(_rank_table(u23, "best_u23", "overall_score"))
 
+        # Stage B1: young-talent rankings sorted by age_potential_score
+        # (overall_score + age_bonus + reliability_bonus - see
+        # scouting_scores.py) instead of raw overall_score. best_young_talents
+        # and best_u23_players_by_potential use the exact same U23 pool and
+        # sort order - they're kept as two category labels on purpose:
+        # best_young_talents is the natural "headline" name for this list,
+        # while best_u23_players_by_potential exists so it sits directly next
+        # to best_u23 in the output and makes the "current output" vs.
+        # "potential-adjusted" comparison for the same age bracket explicit.
+        tables.append(_rank_table(u23, "best_young_talents", "age_potential_score"))
+        tables.append(_rank_table(u23, "best_u23_players_by_potential", "age_potential_score"))
+
+        u21 = outfield[outfield["age"] <= U21_AGE_LIMIT]
+        tables.append(_rank_table(u21, "best_u21_players", "age_potential_score"))
+
     defenders = df[_position_matches(df, "def") | _position_matches(df, "back")]
     tables.append(_rank_table(defenders, "best_defenders", "defensive_score"))
 
@@ -106,6 +130,31 @@ def build_rankings(df):
     tables.append(_rank_table(attackers, "best_attackers", "attacking_score"))
 
     tables.append(_rank_table(outfield, "best_overall", "overall_score"))
+
+    # Stage B2: team-context rankings built on scouting_scores.py's
+    # underrated_score/standout_bonus/weak_team_bonus - replaces the old
+    # hardcoded BIG_CLUBS proxy that used to live in report.py.
+    #
+    # underrated_players: the general "who's underrated" leaderboard, sorted
+    # by the full underrated_score (overall_score + standout_bonus +
+    # weak_team_bonus) - no extra filter.
+    tables.append(_rank_table(outfield, "underrated_players", "underrated_score"))
+
+    # hidden_gems: a stricter subset - only players who both outperform
+    # their own teammates (standout_bonus > 0) *and* play for a squad below
+    # the league's average team (weak_team_bonus > 0). Requiring both
+    # signals at once is what makes this "hidden", not just "good relative
+    # to a bad team" or "good on an average team".
+    hidden_gems_pool = outfield[(outfield["standout_bonus"] > 0) & (outfield["weak_team_bonus"] > 0)]
+    tables.append(_rank_table(hidden_gems_pool, "hidden_gems", "underrated_score"))
+
+    # small_club_standouts: every eligible outfield player at a below-average
+    # team (weak_team_bonus > 0), sorted by plain overall_score rather than
+    # the blended underrated_score - this answers "who's the best individual
+    # performer at a smaller club", regardless of how far above their own
+    # teammates they sit.
+    small_club_pool = outfield[outfield["weak_team_bonus"] > 0]
+    tables.append(_rank_table(small_club_pool, "small_club_standouts", "overall_score"))
 
     positions = [
         p for p in sorted(df["position"].dropna().unique())

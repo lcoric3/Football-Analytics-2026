@@ -311,9 +311,14 @@ def _plot_similarity_bar(similarity_df, query_player, role, filename, title):
 
 
 def plot_similarity_bennacer(similarity_df):
+    # Stage B3: the example query changed to role="midfielder" with
+    # same_position_only=True (a stricter, like-for-like comparison) -
+    # this must match ml_models.EXAMPLE_SIMILARITY_QUERIES exactly, or
+    # this chart silently finds no matching rows and gets skipped.
     _plot_similarity_bar(
-        similarity_df, "Ismaël Bennacer", "overall",
-        "player_similarity_bennacer.png", "Players Most Similar to Ismaël Bennacer (overall)",
+        similarity_df, "Ismaël Bennacer", "midfielder",
+        "player_similarity_bennacer.png",
+        "Players Most Similar to Ismaël Bennacer (midfielder, same position only)",
     )
 
 
