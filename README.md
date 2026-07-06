@@ -96,11 +96,23 @@ pip install -r requirements.txt
 pytest
 ```
 
+### 6. Run the dashboard
+
+The Streamlit dashboard is a read-only view over the CSVs, charts, and
+reports `python main.py` already produced - it never calls the SportMonks
+API and never writes any data file, so run the pipeline at least once
+first:
+
+```powershell
+streamlit run app.py
+```
+
 ## Project structure
 
 ```
 Football-Analytics-2026/
 ├── main.py                  # Orchestrator - runs each pipeline stage in order
+├── app.py                   # Streamlit dashboard - reads data/reports only, no API calls
 ├── requirements.txt
 ├── .env.example              # Template for SPORTMONKS_API_TOKEN - copy to .env
 ├── tests/                    # pytest suite - synthetic data, no API/.env needed
@@ -471,6 +483,41 @@ from src import report
 report.run()
 ```
 
+## Dashboard
+
+`app.py` is a Streamlit dashboard over the pipeline's existing outputs -
+it **never calls the SportMonks API and never writes or recomputes any
+data**, it only reads the CSVs in `data/processed/` and `data/output/`,
+the charts in `reports/figures/`, and the Markdown reports. Run
+`python main.py` at least once first, then:
+
+```powershell
+streamlit run app.py
+```
+
+Pages (sidebar navigation):
+
+- **Overview** - dataset summary (player/team/eligible-player counts) and
+  the full scouting report.
+- **Player rankings** - top overall/U23/attackers/creators/defenders/
+  dribblers/passers/progressive midfielders/passer defenders/goalkeepers.
+- **Player search / profile** - search by name, see age/team/position/
+  minutes, every scouting score, and key per-90 stats.
+- **Similarity search** - a UI over `ml_models.find_similar_players`
+  (role, same-position/same-team/min-minutes/max-age filters).
+- **Replacement scouting** - a UI over
+  `replacement_scouting.find_replacement_targets`, with `replacement_score`
+  explained inline.
+- **Hidden gems** - underrated players, hidden gems, and small-club
+  standouts (team-context scoring).
+- **Clusters** - cluster sizes/names, players per cluster, and the full
+  cluster profiles report.
+- **Charts / report** - every chart in `reports/figures/` plus the full
+  Markdown scouting report.
+
+If a required CSV/chart/report is missing, the affected page shows an
+error pointing at `python main.py` instead of crashing the app.
+
 ## Limitations
 
 - **One season only.** All scores and percentiles are relative to this
@@ -517,10 +564,9 @@ every pipeline run.)
   player pool only.
 - Refine the cluster archetype signatures with feedback from reviewing a
   season's worth of assignments against known player profiles.
-- A Streamlit dashboard (`app.py`) with filters by team/age/position/
-  minutes, a player profile view, specialist rankings, similarity search,
-  replacement scouting, cluster profiles, charts, and an in-app report
-  viewer.
+- Dashboard filters by team/age/position/minutes on the rankings page
+  (currently category-only) - see the "Dashboard" section above for
+  what `app.py` covers today.
 
 ## About this project
 
