@@ -543,6 +543,54 @@ box charts you can hover/zoom on) throughout the Overview and Multi-season
 development pages, built entirely from the CSVs above - no extra data or
 API calls required.
 
+## Javna objava na Streamlit Community Cloudu
+
+Dashboard je **read-only** - čita samo CSV-ove, grafikone i izvještaje koji
+su već spremljeni u ovom Git repozitoriju, nikad ne poziva SportMonks API i
+ništa ne zapisuje. Zato javni deploy **ne treba** `.env`, `secrets.toml`
+ni `SPORTMONKS_API_TOKEN`.
+
+### Postavke deploya
+
+| Postavka | Vrijednost |
+|---|---|
+| Repository | ovaj GitHub repozitorij (`lcoric3/Football-Analytics-2026`) |
+| Branch | `main` |
+| Main file path | `app.py` |
+| Python version | `3.12` |
+| Secrets | nisu potrebne |
+
+### Postupak
+
+1. Provjeri da su sve promjene pushane na granu `main` - Streamlit Cloud
+   čita kod isključivo iz GitHuba, ne s tvog računala. Uz kod moraju biti
+   commitane i generirane datoteke koje dashboard čita:
+   `data/processed/`, `data/output/`, `reports/`,
+   `reports/figures_2024_2025/` i `reports/figures_2025_2026/`.
+2. Otvori <https://share.streamlit.io> i prijavi se GitHub računom.
+3. Odobri Streamlitu pristup repozitoriju (`Authorize streamlit`).
+4. Klikni **Create app**, pa odaberi **Deploy a public app from GitHub**.
+5. Ispuni formu prema tablici gore: *Repository*
+   `lcoric3/Football-Analytics-2026`, *Branch* `main`, *Main file path*
+   `app.py`.
+6. U **Advanced settings** postavi *Python version* na **3.12**. Polje
+   *Secrets* ostavi prazno.
+7. (Neobavezno) U *App URL* upiši željeni poddomenski naziv - javna
+   poveznica bit će oblika `https://naziv-aplikacije.streamlit.app`.
+8. Klikni **Deploy**. Prvi build traje nekoliko minuta jer Cloud instalira
+   sve iz `requirements.txt`.
+
+### Nakon deploya
+
+- Svaki novi `git push` na granu `main` automatski pokreće ponovni deploy.
+- Ako se pojavi pogreška, logovi su u samoj aplikaciji: gumb **Manage app**
+  u donjem desnom kutu otvara panel s live logovima builda i runtimea. Isti
+  logovi dostupni su i iz <https://share.streamlit.io> preko izbornika s
+  tri točkice pored aplikacije (**⋮ → Logs**).
+- Najčešći uzroci pada: nedostaje neki paket u `requirements.txt`, ili
+  datoteka koju dashboard čita nije commitana (u tom slučaju stranica
+  prikazuje poruku *"Missing file"* umjesto tracebacka).
+
 ## Multi-season player development
 
 `src/player_development.py` compares every player who has scored,

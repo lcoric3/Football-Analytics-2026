@@ -173,7 +173,13 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Cursor  
+# Streamlit
+#  Local secrets file - the public read-only dashboard needs no secrets at
+#  all (it only reads already-generated CSVs/charts), but if one is ever
+#  created locally it must never be committed.
+.streamlit/secrets.toml
+
+# Cursor
 #  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to 
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files

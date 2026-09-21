@@ -73,7 +73,7 @@ def _ranked_bar_chart(df, value_col, title, label_col="player_name", color_col=N
         color=color_col, title=title,
     )
     fig.update_layout(yaxis_title="", xaxis_title=value_col)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def missing_file_error(path):
@@ -156,7 +156,7 @@ def render_overview(suffix):
             title=f"overall_score distribution by position ({MIN_MINUTES_FOR_SCORES}+ minutes)",
         )
         fig_box.update_layout(xaxis_title="", yaxis_title="overall_score")
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, width="stretch")
 
     st.subheader("Full scouting report")
     report_path = season_config.scouting_report_path(suffix=suffix)
@@ -183,7 +183,7 @@ def render_rankings(suffix):
     if subset.empty:
         st.warning(f"No rows found for category `{category}`.")
         return
-    st.dataframe(subset.drop(columns=["category"]), hide_index=True, use_container_width=True)
+    st.dataframe(subset.drop(columns=["category"]), hide_index=True, width="stretch")
 
 
 def render_player_profile(suffix):
@@ -223,7 +223,7 @@ def render_player_profile(suffix):
     ]
     scores = {c: row[c] for c in score_cols if pd.notna(row.get(c))}
     if scores:
-        st.dataframe(pd.DataFrame([scores]), hide_index=True, use_container_width=True)
+        st.dataframe(pd.DataFrame([scores]), hide_index=True, width="stretch")
     else:
         st.info(
             f"No scores available - this player is likely below the "
@@ -238,7 +238,7 @@ def render_player_profile(suffix):
     ]
     per90 = {c: row[c] for c in per90_cols if pd.notna(row.get(c))}
     if per90:
-        st.dataframe(pd.DataFrame([per90]), hide_index=True, use_container_width=True)
+        st.dataframe(pd.DataFrame([per90]), hide_index=True, width="stretch")
 
     chart_file = _example_chart_for_player(suffix, player_name)
     if chart_file:
@@ -283,7 +283,7 @@ def render_similarity_search(suffix):
     if results.empty:
         st.warning("No similar players found with these filters.")
         return
-    st.dataframe(results, hide_index=True, use_container_width=True)
+    st.dataframe(results, hide_index=True, width="stretch")
 
 
 def render_replacement_scouting(suffix):
@@ -338,7 +338,7 @@ def render_replacement_scouting(suffix):
     if results.empty:
         st.warning("No replacement targets found with these filters.")
         return
-    st.dataframe(results, hide_index=True, use_container_width=True)
+    st.dataframe(results, hide_index=True, width="stretch")
 
 
 def render_hidden_gems(suffix):
@@ -367,7 +367,7 @@ def render_hidden_gems(suffix):
             if subset.empty:
                 st.warning(f"No rows found for category `{category}`.")
             else:
-                st.dataframe(subset.drop(columns=["category"]), hide_index=True, use_container_width=True)
+                st.dataframe(subset.drop(columns=["category"]), hide_index=True, width="stretch")
 
 
 def render_clusters(suffix):
@@ -391,14 +391,14 @@ def render_clusters(suffix):
         .reset_index(name="players")
         .sort_values("cluster_id")
     )
-    st.dataframe(cluster_summary, hide_index=True, use_container_width=True)
+    st.dataframe(cluster_summary, hide_index=True, width="stretch")
 
     cluster_options = sorted(clusters_df["cluster_name"].dropna().unique())
     selected = st.selectbox("Show players in cluster", cluster_options)
     subset = clusters_df[clusters_df["cluster_name"] == selected].sort_values(
         "quality_score", ascending=False
     )
-    st.dataframe(subset, hide_index=True, use_container_width=True)
+    st.dataframe(subset, hide_index=True, width="stretch")
 
     cluster_profiles_path = season_config.cluster_profiles_report_path(suffix=suffix)
     if os.path.exists(cluster_profiles_path):
@@ -486,7 +486,7 @@ def render_player_development():
             biggest_improvers, "overall_score_change",
             f"Biggest improvers: overall_score change ({base_label} -> {target_label})",
         )
-        st.dataframe(biggest_improvers, hide_index=True, use_container_width=True)
+        st.dataframe(biggest_improvers, hide_index=True, width="stretch")
 
     with tabs[1]:
         biggest_decliners = player_development.rank_biggest_decliners(dev_df, top_n=20)
@@ -494,7 +494,7 @@ def render_player_development():
             biggest_decliners, "overall_score_change",
             f"Biggest decliners: overall_score change ({base_label} -> {target_label})",
         )
-        st.dataframe(biggest_decliners, hide_index=True, use_container_width=True)
+        st.dataframe(biggest_decliners, hide_index=True, width="stretch")
 
     with tabs[2]:
         young_improvers = player_development.rank_young_improvers(dev_df, top_n=20)
@@ -505,7 +505,7 @@ def render_player_development():
                 young_improvers, "overall_score_change",
                 f"Young improvers (age <= {player_development.U23_AGE_LIMIT}): overall_score change",
             )
-            st.dataframe(young_improvers, hide_index=True, use_container_width=True)
+            st.dataframe(young_improvers, hide_index=True, width="stretch")
 
     with tabs[3]:
         changed_team_improvers = player_development.rank_changed_team_improvers(dev_df, top_n=20)
@@ -516,7 +516,7 @@ def render_player_development():
                 changed_team_improvers, "overall_score_change",
                 "Improved after changing team: overall_score change",
             )
-            st.dataframe(changed_team_improvers, hide_index=True, use_container_width=True)
+            st.dataframe(changed_team_improvers, hide_index=True, width="stretch")
 
     with tabs[4]:
         hidden_gem_ids = player_development.load_hidden_gem_ids(base_suffix)
@@ -526,7 +526,7 @@ def render_player_development():
         if hidden_gems_improved.empty:
             st.warning("No hidden gems from last season also improved this season.")
         else:
-            st.dataframe(hidden_gems_improved, hide_index=True, use_container_width=True)
+            st.dataframe(hidden_gems_improved, hide_index=True, width="stretch")
 
     with tabs[5]:
         query = st.text_input("Search player name", key="dev_query")
@@ -569,13 +569,13 @@ def render_player_development():
                         title=f"{player_name}: overall_score by season",
                     )
                     fig_overall.update_layout(xaxis_title="")
-                    st.plotly_chart(fig_overall, use_container_width=True)
+                    st.plotly_chart(fig_overall, width="stretch")
 
                 st.subheader("Score changes")
                 change_cols = [c for c in dev_df.columns if c.endswith("_change")]
                 changes = {c: row[c] for c in change_cols if pd.notna(row.get(c))}
                 if changes:
-                    st.dataframe(pd.DataFrame([changes]), hide_index=True, use_container_width=True)
+                    st.dataframe(pd.DataFrame([changes]), hide_index=True, width="stretch")
 
                 score_change_cols = [c for c in change_cols if c.endswith("_score_change")]
                 score_changes = {c: row[c] for c in score_change_cols if pd.notna(row.get(c))}
@@ -590,7 +590,7 @@ def render_player_development():
                         title=f"{player_name}: score changes by category ({base_label} -> {target_label})",
                     )
                     fig_changes.update_layout(yaxis_title="", coloraxis_showscale=False)
-                    st.plotly_chart(fig_changes, use_container_width=True)
+                    st.plotly_chart(fig_changes, width="stretch")
 
                 st.subheader("Flags")
                 flag_cols = [
@@ -599,7 +599,7 @@ def render_player_development():
                 ]
                 flags = {c: row[c] for c in flag_cols if c in dev_df.columns}
                 if flags:
-                    st.dataframe(pd.DataFrame([flags]), hide_index=True, use_container_width=True)
+                    st.dataframe(pd.DataFrame([flags]), hide_index=True, width="stretch")
 
     st.divider()
     st.subheader("Trends across all matched players")
@@ -612,14 +612,14 @@ def render_player_development():
                 dev_df, x=age_col, y="overall_score_change", hover_data=["player_name"] + hover_cols,
                 title=f"Age ({target_label}) vs overall_score change",
             )
-            st.plotly_chart(fig_age, use_container_width=True)
+            st.plotly_chart(fig_age, width="stretch")
     with trend_col2:
         if "minutes_change" in dev_df.columns and "overall_score_change" in dev_df.columns:
             fig_minutes = px.scatter(
                 dev_df, x="minutes_change", y="overall_score_change", hover_data=["player_name"] + hover_cols,
                 title="Minutes change vs overall_score change",
             )
-            st.plotly_chart(fig_minutes, use_container_width=True)
+            st.plotly_chart(fig_minutes, width="stretch")
 
     st.divider()
     st.subheader("Full multi-season development report")

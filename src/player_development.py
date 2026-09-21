@@ -38,11 +38,13 @@ TARGET_SEASON_SUFFIX = "2025_2026"
 BASE_SEASON_NAME = "2024/2025"
 TARGET_SEASON_NAME = "2025/2026"
 
-DEVELOPMENT_OUTPUT_CSV_PATH = (
-    f"{season_config.OUTPUT_DIR}/player_development_"
-    f"{BASE_SEASON_SUFFIX}_to_{TARGET_SEASON_SUFFIX}.csv"
+DEVELOPMENT_OUTPUT_CSV_PATH = os.path.join(
+    season_config.OUTPUT_DIR,
+    f"player_development_{BASE_SEASON_SUFFIX}_to_{TARGET_SEASON_SUFFIX}.csv",
 )
-DEVELOPMENT_REPORT_PATH = f"{season_config.REPORTS_DIR}/hnl_multi_season_development_report.md"
+DEVELOPMENT_REPORT_PATH = os.path.join(
+    season_config.REPORTS_DIR, "hnl_multi_season_development_report.md"
+)
 
 # Same U23 cutoff used throughout the rest of the project (visualization.py,
 # analysis.py, scouting_scores.py).
@@ -69,11 +71,11 @@ TOP_N = 10
 
 
 def _scored_path(suffix):
-    return f"{season_config.PROCESSED_DIR}/hnl_player_scored_{suffix}.csv"
+    return season_config.processed_path("hnl_player_scored", suffix=suffix)
 
 
 def _top_players_path(suffix):
-    return f"{season_config.OUTPUT_DIR}/top_players_hnl_{suffix}.csv"
+    return season_config.output_path("top_players_hnl", suffix=suffix)
 
 
 def load_scored(suffix):
