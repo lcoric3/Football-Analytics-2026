@@ -7,3 +7,4 @@ matplotlib>=3.8
 pytest>=8.0
 streamlit>=1.49
 plotly>=5.20
+supabase>=2.18,<3

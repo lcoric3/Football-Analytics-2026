@@ -591,6 +591,33 @@ ni `SPORTMONKS_API_TOKEN`.
   datoteka koju dashboard čita nije commitana (u tom slučaju stranica
   prikazuje poruku *"Missing file"* umjesto tracebacka).
 
+## Private scouting app (`scout_app.py`)
+
+A second, **private** Streamlit app adds the human scouting layer on top of
+the analytics above: player search and profiles, scouting reports
+(technical / tactical / physical / mental / potential ratings), shortlists,
+and a side-by-side player comparison. It reads the same scored CSVs
+read-only, stores reports and shortlists in **Supabase** (never in local
+files), never calls the SportMonks API, and blends the analytical
+`overall_score` with the scouts' ratings into a `combined_score`
+(`0.65 * analytical + 0.35 * scout`, only when both exist).
+
+**It must never be deployed as a public app** - it connects with a Supabase
+secret key (`sb_secret_...`) that bypasses Row Level Security. It is locked
+behind a password (`SCOUT_APP_PASSWORD`) and, when deployed, must also be
+restricted with Streamlit's "Only specific people can view this app". The
+public dashboard (`app.py`) is unaffected and does not use Supabase or these
+secrets.
+
+```powershell
+streamlit run scout_app.py
+```
+
+Full setup (Supabase project, `supabase/schema.sql`, secrets, keeping the
+deploy private): **[SCOUTING_SETUP.md](SCOUTING_SETUP.md)**. Scoring logic is
+in `src/scout_ratings.py` (deliberately separate from `scouting_scores.py`,
+which holds the unchanged analytical formulas).
+
 ## Multi-season player development
 
 `src/player_development.py` compares every player who has scored,
